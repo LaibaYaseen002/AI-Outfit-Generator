@@ -2,13 +2,16 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import UploadDropzone from "@/components/UploadDropzone";
 import SkinToneCard from "@/components/SkinToneCard";
 import { uploadImage, UploadResult } from "@/lib/upload";
 import { detectSkinTone, SkinToneResult } from "@/lib/skinTone";
+import { setFlowState, clearFlowState } from "@/lib/flow";
 
 export default function UploadPage() {
+  const router = useRouter();
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [progress, setProgress] = useState(0);
@@ -42,12 +45,14 @@ export default function UploadPage() {
     try {
       const uploaded = await uploadImage(file, setProgress);
       setResult(uploaded);
+      setFlowState({ upload: uploaded });
 
       // Auto-run skin tone detection on the uploaded path
       setAnalyzing(true);
       try {
         const tone = await detectSkinTone(uploaded.path);
         setSkinTone(tone);
+        setFlowState({ skinTone: tone });
       } catch (err) {
         setSkinToneError(
           err instanceof Error ? err.message : "Skin tone detection failed"
@@ -69,6 +74,7 @@ export default function UploadPage() {
     setError(null);
     setSkinTone(null);
     setSkinToneError(null);
+    clearFlowState();
   }
 
   return (
@@ -181,9 +187,8 @@ export default function UploadPage() {
                   Upload another
                 </button>
                 <button
-                  disabled
-                  title="Coming in the next feature"
-                  className="rounded-full bg-brand-700 px-5 py-2 text-white shadow opacity-60 cursor-not-allowed"
+                  onClick={() => router.push("/occasion")}
+                  className="rounded-full bg-brand-700 px-5 py-2 text-white shadow hover:bg-brand-500 transition"
                 >
                   Continue → Pick occasion
                 </button>
