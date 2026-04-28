@@ -1,0 +1,28 @@
+import "dotenv/config";
+import express from "express";
+import cors from "cors";
+import morgan from "morgan";
+
+import healthRouter from "./routes/health.js";
+import { errorHandler } from "./middlewares/errorHandler.js";
+import { notFound } from "./middlewares/notFound.js";
+
+const app = express();
+const PORT = process.env.PORT || 5000;
+const CORS_ORIGIN = process.env.CORS_ORIGIN || "http://localhost:3000";
+
+app.use(cors({ origin: CORS_ORIGIN, credentials: true }));
+app.use(express.json({ limit: "10mb" }));
+app.use(express.urlencoded({ extended: true }));
+app.use(morgan("dev"));
+
+// Routes
+app.use("/api/health", healthRouter);
+
+// 404 + error handler (must be last)
+app.use(notFound);
+app.use(errorHandler);
+
+app.listen(PORT, () => {
+  console.log(`🚀 AI Outfit Generator API running on http://localhost:${PORT}`);
+});
