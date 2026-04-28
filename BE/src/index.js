@@ -5,6 +5,7 @@ import morgan from "morgan";
 
 import healthRouter from "./routes/health.js";
 import authRouter from "./routes/auth.js";
+import uploadRouter from "./routes/upload.js";
 import { errorHandler } from "./middlewares/errorHandler.js";
 import { notFound } from "./middlewares/notFound.js";
 
@@ -20,6 +21,7 @@ app.use(morgan("dev"));
 // Routes
 app.use("/api/health", healthRouter);
 app.use("/api/auth", authRouter);
+app.use("/api/upload", uploadRouter);
 
 // 404 + error handler (must be last)
 app.use(notFound);
