@@ -11,6 +11,39 @@ function extFromMime(mime) {
   return "bin";
 }
 
+export async function getSignedUrl(req, res, next) {
+  try {
+    const { path } = req.query;
+    if (!path || typeof path !== "string") {
+      return res
+        .status(400)
+        .json({ error: { message: "Query param 'path' is required", status: 400 } });
+    }
+
+    // Path must belong to the requesting user (first folder = userId)
+    const ownerId = path.split("/")[0];
+    if (ownerId !== req.user.id) {
+      return res
+        .status(403)
+        .json({ error: { message: "Forbidden", status: 403 } });
+    }
+
+    const { data, error } = await supabaseAdmin.storage
+      .from(BUCKET)
+      .createSignedUrl(path, 60 * 60);
+
+    if (error) {
+      return res
+        .status(500)
+        .json({ error: { message: error.message, status: 500 } });
+    }
+
+    res.json({ url: data.signedUrl, path, expiresIn: 60 * 60 });
+  } catch (err) {
+    next(err);
+  }
+}
+
 export async function uploadPhoto(req, res, next) {
   try {
     if (!req.file) {
@@ -45,16 +78,26 @@ export async function uploadPhoto(req, res, next) {
       });
     }
 
-    const { data: publicUrlData } = supabaseAdmin.storage
+    // Private bucket — generate a signed URL (1 hour). For long-term display,
+    // re-sign on demand using the stored `path`.
+    const SIGNED_URL_TTL = 60 * 60; // seconds
+    const { data: signed, error: signedError } = await supabaseAdmin.storage
       .from(BUCKET)
-      .getPublicUrl(path);
+      .createSignedUrl(path, SIGNED_URL_TTL);
+
+    if (signedError) {
+      return res.status(500).json({
+        error: { message: `Could not sign URL: ${signedError.message}`, status: 500 }
+      });
+    }
 
     res.status(201).json({
-      url: publicUrlData.publicUrl,
+      url: signed.signedUrl,
       path,
       bucket: BUCKET,
       size: req.file.size,
-      mimeType: req.file.mimetype
+      mimeType: req.file.mimetype,
+      expiresIn: SIGNED_URL_TTL
     });
   } catch (err) {
     next(err);

@@ -1,6 +1,6 @@
 import { Router } from "express";
 import multer from "multer";
-import { uploadPhoto } from "../controllers/uploadController.js";
+import { uploadPhoto, getSignedUrl } from "../controllers/uploadController.js";
 import { requireAuth } from "../middlewares/requireAuth.js";
 
 const router = Router();
@@ -22,5 +22,6 @@ function handleMulterError(err, _req, res, next) {
 }
 
 router.post("/", requireAuth, upload.single("image"), handleMulterError, uploadPhoto);
+router.get("/signed-url", requireAuth, getSignedUrl);
 
 export default router;
