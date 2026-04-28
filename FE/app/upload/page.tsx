@@ -4,7 +4,9 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import UploadDropzone from "@/components/UploadDropzone";
+import SkinToneCard from "@/components/SkinToneCard";
 import { uploadImage, UploadResult } from "@/lib/upload";
+import { detectSkinTone, SkinToneResult } from "@/lib/skinTone";
 
 export default function UploadPage() {
   const [file, setFile] = useState<File | null>(null);
@@ -13,6 +15,10 @@ export default function UploadPage() {
   const [uploading, setUploading] = useState(false);
   const [result, setResult] = useState<UploadResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  const [analyzing, setAnalyzing] = useState(false);
+  const [skinTone, setSkinTone] = useState<SkinToneResult | null>(null);
+  const [skinToneError, setSkinToneError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!file) {
@@ -30,10 +36,25 @@ export default function UploadPage() {
     setUploading(true);
     setProgress(0);
     setResult(null);
+    setSkinTone(null);
+    setSkinToneError(null);
 
     try {
-      const res = await uploadImage(file, setProgress);
-      setResult(res);
+      const uploaded = await uploadImage(file, setProgress);
+      setResult(uploaded);
+
+      // Auto-run skin tone detection on the uploaded path
+      setAnalyzing(true);
+      try {
+        const tone = await detectSkinTone(uploaded.path);
+        setSkinTone(tone);
+      } catch (err) {
+        setSkinToneError(
+          err instanceof Error ? err.message : "Skin tone detection failed"
+        );
+      } finally {
+        setAnalyzing(false);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Upload failed");
     } finally {
@@ -46,6 +67,8 @@ export default function UploadPage() {
     setResult(null);
     setProgress(0);
     setError(null);
+    setSkinTone(null);
+    setSkinToneError(null);
   }
 
   return (
@@ -123,32 +146,49 @@ export default function UploadPage() {
               <h2 className="text-xl font-bold text-green-700">
                 ✓ Upload successful
               </h2>
-              <p className="mt-1 text-sm text-neutral-600">
-                Your photo is stored. Path: <code>{result.path}</code>
-              </p>
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={result.url}
                 alt="uploaded"
                 className="mt-4 max-h-80 w-full rounded-xl object-contain"
               />
-              <a
-                href={result.url}
-                target="_blank"
-                rel="noreferrer"
-                className="mt-3 inline-block text-sm text-brand-700 hover:underline"
-              >
-                Open hosted URL ↗
-              </a>
-              <div className="mt-5">
+            </div>
+          )}
+
+          {analyzing && (
+            <div className="rounded-2xl bg-white p-6 shadow">
+              <p className="text-neutral-600">Analyzing skin tone…</p>
+              <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-neutral-200">
+                <div className="h-full w-1/3 animate-pulse bg-brand-500" />
+              </div>
+            </div>
+          )}
+
+          {skinToneError && (
+            <div className="rounded-2xl bg-red-50 p-4 text-red-700">
+              {skinToneError}
+            </div>
+          )}
+
+          {skinTone && (
+            <>
+              <SkinToneCard result={skinTone} />
+              <div className="flex justify-between">
                 <button
                   onClick={reset}
                   className="rounded-full border border-brand-700 px-5 py-2 text-brand-700 hover:bg-brand-50 transition"
                 >
                   Upload another
                 </button>
+                <button
+                  disabled
+                  title="Coming in the next feature"
+                  className="rounded-full bg-brand-700 px-5 py-2 text-white shadow opacity-60 cursor-not-allowed"
+                >
+                  Continue → Pick occasion
+                </button>
               </div>
-            </div>
+            </>
           )}
         </div>
       </main>
