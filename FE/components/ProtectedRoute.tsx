@@ -43,8 +43,14 @@ export default function ProtectedRoute({
 
   if (checking) {
     return (
-      <main className="flex min-h-screen items-center justify-center">
-        <p className="text-neutral-500">Loading…</p>
+      <main className="flex min-h-screen items-center justify-center gradient-warm">
+        <div className="flex flex-col items-center gap-3 animate-fade-in">
+          <div className="relative h-10 w-10">
+            <span className="absolute inset-0 rounded-full bg-brand-100 animate-float" />
+            <span className="absolute inset-2 rounded-full bg-brand-700 shadow" />
+          </div>
+          <p className="text-sm text-neutral-600">Loading…</p>
+        </div>
       </main>
     );
   }

@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import UploadDropzone from "@/components/UploadDropzone";
 import SkinToneCard from "@/components/SkinToneCard";
+import Stepper from "@/components/Stepper";
 import { uploadImage, UploadResult } from "@/lib/upload";
 import { detectSkinTone, SkinToneResult } from "@/lib/skinTone";
 import { setFlowState, clearFlowState } from "@/lib/flow";
@@ -79,9 +80,11 @@ export default function UploadPage() {
 
   return (
     <ProtectedRoute>
-      <main className="min-h-screen bg-brand-50 px-4 py-12">
+      <main className="min-h-screen gradient-warm px-4 py-12">
         <div className="mx-auto w-full max-w-2xl space-y-6">
-          <div className="flex items-center justify-between">
+          <Stepper current="upload" />
+
+          <div className="flex items-center justify-between animate-fade-in-up">
             <h1 className="text-3xl font-bold text-brand-700">Upload your photo</h1>
             <Link
               href="/dashboard"
@@ -91,20 +94,22 @@ export default function UploadPage() {
             </Link>
           </div>
 
-          <p className="text-neutral-600">
+          <p className="text-neutral-600 animate-fade-in-up">
             Pick a clear, front-facing photo. We&apos;ll detect your skin tone
             and use it (along with your chosen occasion) to generate outfit
             ideas in the next step.
           </p>
 
-          <UploadDropzone
-            onFileSelected={setFile}
-            disabled={uploading}
-            previewUrl={previewUrl}
-          />
+          <div className="animate-fade-in-up">
+            <UploadDropzone
+              onFileSelected={setFile}
+              disabled={uploading}
+              previewUrl={previewUrl}
+            />
+          </div>
 
           {file && !result && (
-            <div className="rounded-2xl bg-white p-4 shadow">
+            <div className="rounded-2xl bg-white p-4 shadow animate-fade-in-up">
               <p className="text-sm text-neutral-700">
                 <span className="font-medium">{file.name}</span>{" "}
                 <span className="text-neutral-500">
@@ -113,12 +118,13 @@ export default function UploadPage() {
               </p>
 
               {uploading && (
-                <div className="mt-3">
-                  <div className="h-2 w-full overflow-hidden rounded-full bg-neutral-200">
+                <div className="mt-3 animate-fade-in">
+                  <div className="relative h-2 w-full overflow-hidden rounded-full bg-neutral-200">
                     <div
-                      className="h-full bg-brand-500 transition-all"
+                      className="h-full rounded-full bg-gradient-to-r from-brand-500 to-brand-700 transition-all duration-300 ease-out"
                       style={{ width: `${progress}%` }}
                     />
+                    <span className="pointer-events-none absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/60 to-transparent animate-shimmer" />
                   </div>
                   <p className="mt-1 text-xs text-neutral-500">{progress}%</p>
                 </div>
@@ -144,11 +150,13 @@ export default function UploadPage() {
           )}
 
           {error && (
-            <div className="rounded-2xl bg-red-50 p-4 text-red-700">{error}</div>
+            <div className="rounded-2xl bg-red-50 p-4 text-red-700 animate-fade-in-up">
+              {error}
+            </div>
           )}
 
           {result && (
-            <div className="rounded-2xl bg-white p-6 shadow-lg">
+            <div className="rounded-2xl bg-white p-6 shadow-lg animate-scale-in">
               <h2 className="text-xl font-bold text-green-700">
                 ✓ Upload successful
               </h2>
@@ -162,22 +170,23 @@ export default function UploadPage() {
           )}
 
           {analyzing && (
-            <div className="rounded-2xl bg-white p-6 shadow">
+            <div className="rounded-2xl bg-white p-6 shadow animate-fade-in-up">
               <p className="text-neutral-600">Analyzing skin tone…</p>
-              <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-neutral-200">
-                <div className="h-full w-1/3 animate-pulse bg-brand-500" />
+              <div className="relative mt-3 h-2 w-full overflow-hidden rounded-full bg-neutral-200">
+                <div className="h-full w-1/3 rounded-full bg-brand-500" />
+                <span className="pointer-events-none absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/60 to-transparent animate-shimmer" />
               </div>
             </div>
           )}
 
           {skinToneError && (
-            <div className="rounded-2xl bg-red-50 p-4 text-red-700">
+            <div className="rounded-2xl bg-red-50 p-4 text-red-700 animate-fade-in-up">
               {skinToneError}
             </div>
           )}
 
           {skinTone && (
-            <>
+            <div className="space-y-4 animate-fade-in-up">
               <SkinToneCard result={skinTone} />
               <div className="flex justify-between">
                 <button
@@ -188,12 +197,12 @@ export default function UploadPage() {
                 </button>
                 <button
                   onClick={() => router.push("/occasion")}
-                  className="rounded-full bg-brand-700 px-5 py-2 text-white shadow hover:bg-brand-500 transition"
+                  className="rounded-full bg-brand-700 px-5 py-2 text-white shadow transition hover:bg-brand-500 hover:shadow-md hover:-translate-y-0.5 active:translate-y-0"
                 >
                   Continue → Pick occasion
                 </button>
               </div>
-            </>
+            </div>
           )}
         </div>
       </main>

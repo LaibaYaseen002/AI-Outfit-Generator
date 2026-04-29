@@ -24,8 +24,8 @@ export default function DashboardPage() {
 
   return (
     <ProtectedRoute>
-      <main className="flex min-h-screen flex-col items-center justify-center bg-brand-50 px-6 text-center">
-        <div className="w-full max-w-lg rounded-2xl bg-white p-10 shadow-lg">
+      <main className="flex min-h-screen flex-col items-center justify-center gradient-warm px-6 text-center">
+        <div className="w-full max-w-lg rounded-2xl bg-white p-10 shadow-lg animate-scale-in">
           <h1 className="text-3xl font-bold text-brand-700">
             Welcome{email ? `, ${email}` : ""}!
           </h1>
@@ -36,13 +36,13 @@ export default function DashboardPage() {
           <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:justify-center">
             <Link
               href="/upload"
-              className="rounded-full bg-brand-700 px-6 py-3 text-white shadow hover:bg-brand-500 transition"
+              className="rounded-full bg-brand-700 px-6 py-3 text-white shadow transition-all duration-200 hover:bg-brand-500 hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0"
             >
               Try the Outfit Generator
             </Link>
             <button
               onClick={handleLogout}
-              className="rounded-full border border-brand-700 px-6 py-3 text-brand-700 hover:bg-brand-50 transition"
+              className="rounded-full border border-brand-700 px-6 py-3 text-brand-700 transition hover:bg-brand-50"
             >
               Log out
             </button>

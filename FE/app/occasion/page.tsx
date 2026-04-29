@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import ProtectedRoute from "@/components/ProtectedRoute";
+import Stepper from "@/components/Stepper";
+import LoadingOverlay from "@/components/LoadingOverlay";
 import { getFlowState, setFlowState } from "@/lib/flow";
 import { generateOutfit } from "@/lib/outfit";
 
@@ -88,8 +90,8 @@ export default function OccasionPage() {
   if (hasUpload === false) {
     return (
       <ProtectedRoute>
-        <main className="flex min-h-screen items-center justify-center bg-brand-50 px-4">
-          <div className="max-w-md rounded-2xl bg-white p-8 text-center shadow">
+        <main className="flex min-h-screen items-center justify-center gradient-warm px-4">
+          <div className="max-w-md rounded-2xl bg-white p-8 text-center shadow animate-scale-in">
             <h1 className="text-xl font-bold text-brand-700">Upload first</h1>
             <p className="mt-2 text-neutral-600">
               We need a photo to detect your skin tone before recommending an
@@ -109,9 +111,12 @@ export default function OccasionPage() {
 
   return (
     <ProtectedRoute>
-      <main className="min-h-screen bg-brand-50 px-4 py-12">
+      <LoadingOverlay open={submitting} />
+      <main className="min-h-screen gradient-warm px-4 py-12">
         <div className="mx-auto w-full max-w-3xl space-y-8">
-          <div className="flex items-center justify-between">
+          <Stepper current="occasion" />
+
+          <div className="flex items-center justify-between animate-fade-in-up">
             <h1 className="text-3xl font-bold text-brand-700">
               Where are you going?
             </h1>
@@ -123,18 +128,18 @@ export default function OccasionPage() {
             </Link>
           </div>
 
-          <section>
+          <section className="animate-fade-in-up">
             <h2 className="mb-3 text-lg font-semibold text-neutral-800">
               Pick an occasion
             </h2>
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+            <div className="stagger grid grid-cols-2 gap-3 sm:grid-cols-3">
               {OCCASIONS.map((o) => (
                 <button
                   key={o.id}
                   onClick={() => setOccasion(o.id)}
-                  className={`rounded-2xl border-2 p-4 text-left transition ${
+                  className={`animate-fade-in-up rounded-2xl border-2 p-4 text-left transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md ${
                     occasion === o.id
-                      ? "border-brand-700 bg-brand-100"
+                      ? "border-brand-700 bg-brand-100 shadow-md"
                       : "border-transparent bg-white hover:border-brand-500"
                   }`}
                 >
@@ -147,7 +152,7 @@ export default function OccasionPage() {
             </div>
           </section>
 
-          <section className="space-y-4 rounded-2xl bg-white p-6 shadow">
+          <section className="space-y-4 rounded-2xl bg-white p-6 shadow animate-fade-in-up">
             <h2 className="text-lg font-semibold text-neutral-800">
               Preferences <span className="text-sm text-neutral-500">(optional)</span>
             </h2>
@@ -215,13 +220,15 @@ export default function OccasionPage() {
           </section>
 
           {error && (
-            <div className="rounded-2xl bg-red-50 p-4 text-red-700">{error}</div>
+            <div className="rounded-2xl bg-red-50 p-4 text-red-700 animate-fade-in-up">
+              {error}
+            </div>
           )}
 
           <button
             onClick={handleGenerate}
             disabled={submitting}
-            className="w-full rounded-full bg-brand-700 py-4 text-lg font-medium text-white shadow hover:bg-brand-500 disabled:cursor-not-allowed disabled:opacity-60 transition"
+            className="w-full rounded-full bg-brand-700 py-4 text-lg font-medium text-white shadow transition-all duration-200 hover:bg-brand-500 hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0 animate-fade-in-up"
           >
             {submitting ? "Crafting your outfit…" : "Generate Outfit"}
           </button>

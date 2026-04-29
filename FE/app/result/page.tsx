@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import ProtectedRoute from "@/components/ProtectedRoute";
+import Stepper from "@/components/Stepper";
 import { OutfitResponse } from "@/lib/outfit";
 import { clearFlowState, getFlowState } from "@/lib/flow";
 
@@ -34,8 +35,8 @@ export default function ResultPage() {
   if (missing) {
     return (
       <ProtectedRoute>
-        <main className="flex min-h-screen items-center justify-center bg-brand-50 px-4">
-          <div className="max-w-md rounded-2xl bg-white p-8 text-center shadow">
+        <main className="flex min-h-screen items-center justify-center gradient-warm px-4">
+          <div className="max-w-md rounded-2xl bg-white p-8 text-center shadow animate-scale-in">
             <h1 className="text-xl font-bold text-brand-700">No result yet</h1>
             <p className="mt-2 text-neutral-600">
               Looks like you haven&apos;t generated an outfit. Start by
@@ -70,9 +71,11 @@ export default function ResultPage() {
 
   return (
     <ProtectedRoute>
-      <main className="min-h-screen bg-brand-50 px-4 py-12">
+      <main className="min-h-screen gradient-warm px-4 py-12">
         <div className="mx-auto w-full max-w-3xl space-y-6">
-          <div className="flex items-center justify-between">
+          <Stepper current="result" />
+
+          <div className="flex items-center justify-between animate-fade-in-up">
             <h1 className="text-3xl font-bold text-brand-700">
               Your outfit is ready
             </h1>
@@ -84,7 +87,7 @@ export default function ResultPage() {
             </Link>
           </div>
 
-          <div className="rounded-2xl bg-white p-6 shadow-lg">
+          <div className="rounded-2xl bg-white p-6 shadow-lg animate-scale-in">
             <div className="flex flex-wrap items-center justify-between gap-4">
               <div className="flex items-center gap-3">
                 {skinHex && (
@@ -103,27 +106,21 @@ export default function ResultPage() {
                   </p>
                 </div>
               </div>
-              <div className="flex gap-2">
-                {result.colors.map((c) => (
-                  <div
-                    key={c}
-                    title={c}
-                    className="h-8 w-8 rounded-full border-2 border-white shadow"
-                    style={{ backgroundColor: c }}
-                  />
-                ))}
-              </div>
+              <ColorPalette colors={result.colors} />
             </div>
           </div>
 
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            <OutfitItem label="Top" value={result.outfit.top} />
-            <OutfitItem label="Bottom" value={result.outfit.bottom} />
-            <OutfitItem label="Footwear" value={result.outfit.footwear} />
-            <div className="rounded-2xl bg-white p-5 shadow">
-              <p className="text-xs uppercase tracking-wide text-neutral-500">
-                Accessories
-              </p>
+          <div className="stagger grid grid-cols-1 gap-4 md:grid-cols-2">
+            <OutfitItem label="Top" value={result.outfit.top} icon="👕" />
+            <OutfitItem label="Bottom" value={result.outfit.bottom} icon="👖" />
+            <OutfitItem label="Footwear" value={result.outfit.footwear} icon="👟" />
+            <div className="animate-fade-in-up rounded-2xl bg-white p-5 shadow transition hover:shadow-md">
+              <div className="flex items-center gap-2">
+                <span className="text-lg">✨</span>
+                <p className="text-xs uppercase tracking-wide text-neutral-500">
+                  Accessories
+                </p>
+              </div>
               <ul className="mt-2 space-y-1 text-neutral-800">
                 {result.outfit.accessories.map((a, i) => (
                   <li key={i}>• {a}</li>
@@ -132,24 +129,24 @@ export default function ResultPage() {
             </div>
           </div>
 
-          <div className="rounded-2xl bg-white p-6 shadow">
+          <div className="rounded-2xl bg-white p-6 shadow animate-fade-in-up">
             <h2 className="text-lg font-semibold text-brand-700">
               Why this works
             </h2>
             <p className="mt-2 text-neutral-700">{result.explanation}</p>
           </div>
 
-          <div className="flex flex-col gap-3 sm:flex-row sm:justify-between">
+          <div className="flex flex-col gap-3 animate-fade-in-up sm:flex-row sm:justify-between">
             <Link
               href="/occasion"
-              className="rounded-full border border-brand-700 px-6 py-3 text-center text-brand-700 hover:bg-brand-50 transition"
+              className="rounded-full border border-brand-700 px-6 py-3 text-center text-brand-700 transition hover:bg-brand-50"
             >
               ← Try a different occasion
             </Link>
             <Link
               href="/upload"
               onClick={startOver}
-              className="rounded-full bg-brand-700 px-6 py-3 text-center text-white shadow hover:bg-brand-500 transition"
+              className="rounded-full bg-brand-700 px-6 py-3 text-center text-white shadow transition-all duration-200 hover:bg-brand-500 hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0"
             >
               Start over with a new photo
             </Link>
@@ -160,11 +157,50 @@ export default function ResultPage() {
   );
 }
 
-function OutfitItem({ label, value }: { label: string; value: string }) {
+function OutfitItem({
+  label,
+  value,
+  icon
+}: {
+  label: string;
+  value: string;
+  icon: string;
+}) {
   return (
-    <div className="rounded-2xl bg-white p-5 shadow">
-      <p className="text-xs uppercase tracking-wide text-neutral-500">{label}</p>
+    <div className="animate-fade-in-up rounded-2xl bg-white p-5 shadow transition hover:shadow-md">
+      <div className="flex items-center gap-2">
+        <span className="text-lg">{icon}</span>
+        <p className="text-xs uppercase tracking-wide text-neutral-500">{label}</p>
+      </div>
       <p className="mt-1 text-neutral-800">{value}</p>
+    </div>
+  );
+}
+
+function ColorPalette({ colors }: { colors: string[] }) {
+  const [copied, setCopied] = useState<string | null>(null);
+
+  function copy(c: string) {
+    if (typeof navigator === "undefined" || !navigator.clipboard) return;
+    navigator.clipboard.writeText(c).then(() => {
+      setCopied(c);
+      window.setTimeout(() => setCopied((prev) => (prev === c ? null : prev)), 1200);
+    });
+  }
+
+  return (
+    <div className="flex items-center gap-2">
+      {colors.map((c) => (
+        <button
+          key={c}
+          type="button"
+          onClick={() => copy(c)}
+          title={copied === c ? "Copied!" : `Copy ${c}`}
+          aria-label={`Color ${c}, click to copy`}
+          className="h-9 w-9 rounded-full border-2 border-white shadow transition-transform duration-200 hover:scale-110 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-brand-500"
+          style={{ backgroundColor: c }}
+        />
+      ))}
     </div>
   );
 }

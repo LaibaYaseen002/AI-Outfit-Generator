@@ -9,8 +9,8 @@ export default function SignupPage() {
   const router = useRouter();
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-brand-50 px-4">
-      <div className="w-full max-w-md space-y-4">
+    <main className="flex min-h-screen items-center justify-center gradient-warm px-4">
+      <div className="w-full max-w-md space-y-4 animate-fade-in-up">
         <AuthForm
           mode="signup"
           onSubmit={async ({ email, password, fullName }) => {
