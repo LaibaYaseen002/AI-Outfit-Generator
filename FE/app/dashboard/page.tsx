@@ -40,6 +40,12 @@ export default function DashboardPage() {
             >
               Try the Outfit Generator
             </Link>
+            <Link
+              href="/history"
+              className="rounded-full border border-brand-700 px-6 py-3 text-brand-700 hover:bg-brand-50 transition"
+            >
+              View History
+            </Link>
             <button
               onClick={handleLogout}
               className="rounded-full border border-brand-700 px-6 py-3 text-brand-700 hover:bg-brand-50 transition"

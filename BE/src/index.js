@@ -8,6 +8,7 @@ import authRouter from "./routes/auth.js";
 import uploadRouter from "./routes/upload.js";
 import skinToneRouter from "./routes/skinTone.js";
 import outfitRouter from "./routes/outfit.js";
+import historyRouter from "./routes/history.js";
 import { errorHandler } from "./middlewares/errorHandler.js";
 import { notFound } from "./middlewares/notFound.js";
 
@@ -26,6 +27,7 @@ app.use("/api/auth", authRouter);
 app.use("/api/upload", uploadRouter);
 app.use("/api/skin-tone", skinToneRouter);
 app.use("/api/outfit", outfitRouter);
+app.use("/api/history", historyRouter);
 
 // 404 + error handler (must be last)
 app.use(notFound);

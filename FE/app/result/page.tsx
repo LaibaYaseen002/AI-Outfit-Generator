@@ -76,12 +76,14 @@ export default function ResultPage() {
             <h1 className="text-3xl font-bold text-brand-700">
               Your outfit is ready
             </h1>
-            <Link
-              href="/dashboard"
-              className="text-sm text-brand-700 hover:underline"
-            >
-              Dashboard →
-            </Link>
+            <div className="flex gap-4 text-sm text-brand-700">
+              <Link href="/history" className="hover:underline">
+                History
+              </Link>
+              <Link href="/dashboard" className="hover:underline">
+                Dashboard →
+              </Link>
+            </div>
           </div>
 
           <div className="rounded-2xl bg-white p-6 shadow-lg">
