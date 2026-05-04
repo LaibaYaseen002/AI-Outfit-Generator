@@ -157,6 +157,7 @@ npm run dev                # starts Next.js on http://localhost:3000
 2. From **Project Settings → API**, copy the **Project URL**, **anon key**, and **service_role key**.
 3. Run the SQL migrations from `BE/migrations/` in the Supabase SQL editor:
    - `001_recommendations.sql` — creates the `recommendations` table used by the History feature, with per-user RLS policies.
+   - `002_outfit_image.sql` — adds `outfit_image_path`, `image_status`, `image_error`, `image_updated_at` columns used by the visual outfit preview feature.
 4. Create a **private** storage bucket named `user-photos`.
 5. Enable email/password auth under **Authentication → Providers**.
 
@@ -195,6 +196,13 @@ SUPABASE_BUCKET=user-photos
 # OpenAI
 OPENAI_API_KEY=your-openai-api-key
 OPENAI_MODEL=gpt-4o-mini
+
+# Image generation (outfit preview) — falls back to OPENAI_API_KEY/OPENAI_BASE_URL.
+# Override only when your text LLM provider doesn't host image models.
+IMAGE_API_KEY=
+IMAGE_BASE_URL=
+IMAGE_MODEL=gpt-image-1
+IMAGE_SIZE=1024x1536
 
 # Cloudinary (optional alternative to Supabase Storage)
 CLOUDINARY_CLOUD_NAME=your-cloud-name
@@ -238,7 +246,24 @@ All backend endpoints are prefixed with `/api`.
 
 | Method | Endpoint | Description | Auth |
 |--------|----------|-------------|------|
-| `POST` | `/api/outfit/generate` | Generate AI outfit based on skin tone, occasion, preferences | ✅ |
+| `POST` | `/api/outfit/generate` | Generate AI outfit based on skin tone, occasion, preferences. Returns the saved recommendation `id`. | ✅ |
+| `POST` | `/api/outfit/:id/preview` | Kick off async image generation for the saved recommendation. Idempotent — returns current state if a job is in flight or already done. Responds `202` when a new job is started. | ✅ |
+| `GET`  | `/api/outfit/:id/preview` | Poll the image-generation status. | ✅ |
+
+The preview endpoints return:
+
+```json
+{
+  "id": "…",
+  "status": "idle | pending | generating | ready | failed",
+  "imagePath": "<userId>/outfits/<uuid>.png | null",
+  "imageUrl": "<signed url, 1h TTL> | null",
+  "error": null,
+  "updatedAt": "..."
+}
+```
+
+The frontend triggers `POST /api/outfit/:id/preview` immediately after generation, then polls `GET` every 3 seconds (up to ~120 s) until `status` is `ready` or `failed`.
 
 ### History
 
@@ -287,7 +312,7 @@ This project depends on the following external services. You'll need an account 
 | Service | Purpose | Keys / Variables Needed | Where to Get It |
 |---------|---------|------------------------|----------------|
 | **Supabase** | Database, Auth, Storage | `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` | [supabase.com](https://supabase.com) → Project Settings → API |
-| **OpenAI** | LLM for outfit generation | `OPENAI_API_KEY`, `OPENAI_MODEL` | [platform.openai.com](https://platform.openai.com) → API keys |
+| **OpenAI** | LLM for outfit generation **and** outfit preview image generation | `OPENAI_API_KEY`, `OPENAI_MODEL`, optional `IMAGE_API_KEY`, `IMAGE_BASE_URL`, `IMAGE_MODEL`, `IMAGE_SIZE` | [platform.openai.com](https://platform.openai.com) → API keys |
 | **Cloudinary** *(optional)* | Alternative image hosting | `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET` | [cloudinary.com](https://cloudinary.com) → Dashboard |
 | **face-api.js** *(library)* | Face detection in the browser/server | No key — model files only | [github.com/justadudewhohacks/face-api.js](https://github.com/justadudewhohacks/face-api.js) |
 

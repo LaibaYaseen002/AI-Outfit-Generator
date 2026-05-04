@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import HistoryThumb from "@/components/HistoryThumb";
+import OutfitPreview from "@/components/OutfitPreview";
 import {
   HistoryItem,
   deleteHistoryItem,
@@ -89,10 +90,35 @@ export default function HistoryDetailPage() {
 
           {item && (
             <>
-              <div className="overflow-hidden rounded-2xl bg-white shadow-lg">
-                <div className="max-h-96 overflow-hidden">
-                  <HistoryThumb path={item.image_path} />
+              <OutfitPreview
+                recommendationId={item.id}
+                initial={
+                  item.outfit_image_path && item.image_status === "ready"
+                    ? {
+                        id: item.id,
+                        status: "ready",
+                        imagePath: item.outfit_image_path,
+                        // Signed URL is fetched fresh inside the component when missing
+                        imageUrl: null,
+                        error: null,
+                        updatedAt: item.image_updated_at
+                      }
+                    : undefined
+                }
+              />
+
+              {item.image_path && (
+                <div className="overflow-hidden rounded-2xl bg-white shadow">
+                  <p className="px-6 pt-4 text-xs uppercase tracking-wide text-neutral-500">
+                    Your reference photo
+                  </p>
+                  <div className="max-h-72 overflow-hidden">
+                    <HistoryThumb userImagePath={item.image_path} />
+                  </div>
                 </div>
+              )}
+
+              <div className="overflow-hidden rounded-2xl bg-white shadow-lg">
                 <div className="p-6">
                   <div className="flex flex-wrap items-center justify-between gap-4">
                     <div>

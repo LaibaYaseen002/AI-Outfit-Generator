@@ -1,5 +1,6 @@
 import { apiFetch } from "./api";
 import type { Outfit } from "./outfit";
+import type { PreviewStatus } from "./preview";
 import type { SkinTone } from "./skinTone";
 
 export interface HistoryItem {
@@ -20,6 +21,10 @@ export interface HistoryItem {
   explanation: string;
   model: string | null;
   created_at: string;
+  outfit_image_path: string | null;
+  image_status: PreviewStatus;
+  image_error: string | null;
+  image_updated_at: string | null;
 }
 
 export interface HistoryListResponse {
