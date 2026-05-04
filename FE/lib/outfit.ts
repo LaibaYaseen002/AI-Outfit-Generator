@@ -9,6 +9,7 @@ export interface Outfit {
 }
 
 export interface OutfitResponse {
+  id: string | null;
   outfit: Outfit;
   colors: string[];
   explanation: string;
@@ -21,6 +22,7 @@ export interface GenerateOutfitInput {
   skinTone: SkinTone;
   skinHex?: string;
   occasion: string;
+  imagePath?: string;
   preferences?: {
     style?: string;
     colorsLike?: string[];

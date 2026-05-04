@@ -155,10 +155,9 @@ npm run dev                # starts Next.js on http://localhost:3000
 
 1. Create a new project at [supabase.com](https://supabase.com).
 2. From **Project Settings → API**, copy the **Project URL**, **anon key**, and **service_role key**.
-3. Create the following tables (SQL provided in a later phase):
-   - `profiles`
-   - `recommendations`
-4. Create a public **storage bucket** named `user-photos`.
+3. Run the SQL migrations from `BE/migrations/` in the Supabase SQL editor:
+   - `001_recommendations.sql` — creates the `recommendations` table used by the History feature, with per-user RLS policies.
+4. Create a **private** storage bucket named `user-photos`.
 5. Enable email/password auth under **Authentication → Providers**.
 
 ### Step 5 — Run the app
@@ -243,11 +242,24 @@ All backend endpoints are prefixed with `/api`.
 
 ### History
 
+Every successful `POST /api/outfit/generate` automatically writes a row to the `recommendations` table for the authenticated user. Stored recommendations are scoped per user via the `user_id` column and (defense-in-depth) RLS policies.
+
 | Method | Endpoint | Description | Auth |
 |--------|----------|-------------|------|
-| `GET`    | `/api/history`       | Fetch all past recommendations for the logged-in user | ✅ |
+| `GET`    | `/api/history`       | Fetch past recommendations (paginated). Query: `limit` (default 20, max 100), `offset` (default 0). | ✅ |
 | `GET`    | `/api/history/:id`   | Fetch a single saved recommendation | ✅ |
 | `DELETE` | `/api/history/:id`   | Delete a saved recommendation | ✅ |
+
+`GET /api/history` returns:
+
+```json
+{
+  "items": [{ "id": "…", "occasion": "dinner", "outfit": { "...": "..." }, "created_at": "..." }],
+  "limit": 20,
+  "offset": 0,
+  "total": 42
+}
+```
 
 ### Sample response — `POST /api/outfit/generate`
 

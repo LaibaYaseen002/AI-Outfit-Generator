@@ -73,6 +73,7 @@ export default function OccasionPage() {
         skinTone: state.skinTone.tone,
         skinHex: state.skinTone.hex,
         occasion,
+        imagePath: state.upload?.path,
         preferences
       });
       setFlowState({ ...getFlowState(), ...{} });
