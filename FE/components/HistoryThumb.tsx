@@ -3,14 +3,31 @@
 import { useEffect, useState } from "react";
 import { getSignedUrl } from "@/lib/history";
 
-export default function HistoryThumb({ path }: { path: string | null }) {
+interface Props {
+  // Prefer the outfit-preview image; fall back to the user's photo.
+  outfitImagePath?: string | null;
+  userImagePath?: string | null;
+  // Older single-arg call sites still pass `path` — treated as user photo.
+  path?: string | null;
+  alt?: string;
+}
+
+export default function HistoryThumb({
+  outfitImagePath,
+  userImagePath,
+  path,
+  alt = "Outfit"
+}: Props) {
+  const effectivePath = outfitImagePath ?? userImagePath ?? path ?? null;
   const [url, setUrl] = useState<string | null>(null);
   const [failed, setFailed] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
-    if (!path) return;
-    getSignedUrl(path)
+    setUrl(null);
+    setFailed(false);
+    if (!effectivePath) return;
+    getSignedUrl(effectivePath)
       .then((res) => {
         if (!cancelled) setUrl(res.url);
       })
@@ -20,9 +37,9 @@ export default function HistoryThumb({ path }: { path: string | null }) {
     return () => {
       cancelled = true;
     };
-  }, [path]);
+  }, [effectivePath]);
 
-  if (!path || failed) {
+  if (!effectivePath || failed) {
     return (
       <div className="flex aspect-square w-full items-center justify-center bg-brand-100 text-brand-700">
         <span className="text-3xl">👗</span>
@@ -38,7 +55,7 @@ export default function HistoryThumb({ path }: { path: string | null }) {
     // eslint-disable-next-line @next/next/no-img-element
     <img
       src={url}
-      alt="Outfit photo"
+      alt={alt}
       className="aspect-square w-full object-cover"
     />
   );

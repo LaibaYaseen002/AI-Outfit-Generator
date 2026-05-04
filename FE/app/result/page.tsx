@@ -5,6 +5,7 @@ import Link from "next/link";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { OutfitResponse } from "@/lib/outfit";
 import { clearFlowState, getFlowState } from "@/lib/flow";
+import OutfitPreview from "@/components/OutfitPreview";
 
 const TONE_LABELS: Record<string, string> = {
   light: "Light",
@@ -85,6 +86,10 @@ export default function ResultPage() {
               </Link>
             </div>
           </div>
+
+          {result.id && (
+            <OutfitPreview recommendationId={result.id} />
+          )}
 
           <div className="rounded-2xl bg-white p-6 shadow-lg">
             <div className="flex flex-wrap items-center justify-between gap-4">

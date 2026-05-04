@@ -120,7 +120,10 @@ export default function HistoryPage() {
                     className="group overflow-hidden rounded-2xl bg-white shadow hover:shadow-lg transition"
                   >
                     <Link href={`/history/${item.id}`} className="block">
-                      <HistoryThumb path={item.image_path} />
+                      <HistoryThumb
+                        outfitImagePath={item.outfit_image_path}
+                        userImagePath={item.image_path}
+                      />
                       <div className="p-4">
                         <div className="flex items-center justify-between">
                           <p className="text-xs uppercase tracking-wide text-neutral-500">

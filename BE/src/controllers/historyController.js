@@ -121,11 +121,35 @@ export async function saveRecommendation({
       outfit,
       colors,
       explanation,
-      model: model ?? null
+      model: model ?? null,
+      image_status: "idle"
     })
     .select("*")
     .single();
 
   if (error) throw error;
   return data;
+}
+
+export async function getRecommendationForUser(id, userId) {
+  const { data, error } = await supabaseAdmin
+    .from(TABLE)
+    .select("*")
+    .eq("id", id)
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (error) throw error;
+  return data ?? null;
+}
+
+export async function updateImageStatus(
+  id,
+  patch
+) {
+  const update = { ...patch, image_updated_at: new Date().toISOString() };
+  const { error } = await supabaseAdmin
+    .from(TABLE)
+    .update(update)
+    .eq("id", id);
+  if (error) throw error;
 }
