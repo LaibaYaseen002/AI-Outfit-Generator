@@ -1,8 +1,10 @@
 import { randomUUID } from "crypto";
 import { openaiImage, IMAGE_MODEL, IMAGE_SIZE } from "./openaiImage.js";
+import { generateImageBase64 as hfGenerate } from "./huggingfaceImage.js";
 import { supabaseAdmin } from "./supabase.js";
 
 const BUCKET = process.env.SUPABASE_BUCKET || "user-photos";
+const PROVIDER = (process.env.IMAGE_PROVIDER || "huggingface").toLowerCase();
 
 const TONE_DESCRIPTIONS = {
   light: "light skin tone",
@@ -56,6 +58,30 @@ async function uploadPng({ userId, base64 }) {
   return path;
 }
 
+function parseSize(size) {
+  const [w, h] = String(size).split("x").map((n) => parseInt(n, 10));
+  if (!Number.isFinite(w) || !Number.isFinite(h)) return { width: 1024, height: 1024 };
+  return { width: w, height: h };
+}
+
+async function generateBase64ViaOpenAI(prompt) {
+  const response = await openaiImage.images.generate({
+    model: IMAGE_MODEL,
+    prompt,
+    size: IMAGE_SIZE,
+    n: 1
+  });
+
+  const b64 = response?.data?.[0]?.b64_json;
+  if (b64) return b64;
+
+  const url = response?.data?.[0]?.url;
+  if (!url) throw new Error("Image API returned no image");
+  const fetched = await fetch(url);
+  if (!fetched.ok) throw new Error(`Failed to download generated image: ${fetched.status}`);
+  return Buffer.from(await fetched.arrayBuffer()).toString("base64");
+}
+
 export async function generateOutfitImage({ userId, recommendation }) {
   const prompt = buildImagePrompt({
     outfit: recommendation.outfit,
@@ -65,23 +91,17 @@ export async function generateOutfitImage({ userId, recommendation }) {
     preferences: recommendation.preferences
   });
 
-  const response = await openaiImage.images.generate({
-    model: IMAGE_MODEL,
-    prompt,
-    size: IMAGE_SIZE,
-    n: 1
-  });
-
-  const b64 = response?.data?.[0]?.b64_json;
-  if (!b64) {
-    // Some compatible providers return a URL instead of base64.
-    const url = response?.data?.[0]?.url;
-    if (!url) throw new Error("Image API returned no image");
-    const fetched = await fetch(url);
-    if (!fetched.ok) throw new Error(`Failed to download generated image: ${fetched.status}`);
-    const arr = Buffer.from(await fetched.arrayBuffer()).toString("base64");
-    return uploadPng({ userId, base64: arr });
+  let base64;
+  if (PROVIDER === "openai") {
+    base64 = await generateBase64ViaOpenAI(prompt);
+  } else if (PROVIDER === "huggingface") {
+    const { width, height } = parseSize(IMAGE_SIZE);
+    base64 = await hfGenerate(prompt, { width, height });
+  } else {
+    throw new Error(
+      `Unknown IMAGE_PROVIDER: '${PROVIDER}'. Use 'huggingface' or 'openai'.`
+    );
   }
 
-  return uploadPng({ userId, base64: b64 });
+  return uploadPng({ userId, base64 });
 }

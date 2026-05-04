@@ -197,12 +197,20 @@ SUPABASE_BUCKET=user-photos
 OPENAI_API_KEY=your-openai-api-key
 OPENAI_MODEL=gpt-4o-mini
 
-# Image generation (outfit preview) — falls back to OPENAI_API_KEY/OPENAI_BASE_URL.
-# Override only when your text LLM provider doesn't host image models.
+# Image generation (outfit preview)
+# Provider: 'huggingface' (free, default) or 'openai' (paid).
+IMAGE_PROVIDER=huggingface
+IMAGE_SIZE=1024x1024
+
+# Hugging Face — free token at huggingface.co/settings/tokens (Read scope)
+HF_API_KEY=hf_your-token
+HF_IMAGE_MODEL=black-forest-labs/FLUX.1-schnell
+
+# OpenAI image overrides (used only when IMAGE_PROVIDER=openai).
+# Falls back to OPENAI_API_KEY/OPENAI_BASE_URL when blank.
 IMAGE_API_KEY=
 IMAGE_BASE_URL=
 IMAGE_MODEL=gpt-image-1
-IMAGE_SIZE=1024x1536
 
 # Cloudinary (optional alternative to Supabase Storage)
 CLOUDINARY_CLOUD_NAME=your-cloud-name
@@ -265,6 +273,10 @@ The preview endpoints return:
 
 The frontend triggers `POST /api/outfit/:id/preview` immediately after generation, then polls `GET` every 3 seconds (up to ~120 s) until `status` is `ready` or `failed`.
 
+The image provider is pluggable via `IMAGE_PROVIDER`:
+- `huggingface` (default) — free, uses the Hugging Face Inference API with FLUX.1-schnell or any model in `HF_IMAGE_MODEL`. May incur a one-time cold-start delay (~20–60 s) the first time a model is used.
+- `openai` — paid, uses `gpt-image-1` (or whatever `IMAGE_MODEL` is set to).
+
 ### History
 
 Every successful `POST /api/outfit/generate` automatically writes a row to the `recommendations` table for the authenticated user. Stored recommendations are scoped per user via the `user_id` column and (defense-in-depth) RLS policies.
@@ -312,7 +324,8 @@ This project depends on the following external services. You'll need an account 
 | Service | Purpose | Keys / Variables Needed | Where to Get It |
 |---------|---------|------------------------|----------------|
 | **Supabase** | Database, Auth, Storage | `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` | [supabase.com](https://supabase.com) → Project Settings → API |
-| **OpenAI** | LLM for outfit generation **and** outfit preview image generation | `OPENAI_API_KEY`, `OPENAI_MODEL`, optional `IMAGE_API_KEY`, `IMAGE_BASE_URL`, `IMAGE_MODEL`, `IMAGE_SIZE` | [platform.openai.com](https://platform.openai.com) → API keys |
+| **OpenAI** | LLM for outfit generation; optional image provider | `OPENAI_API_KEY`, `OPENAI_MODEL`, optional `IMAGE_API_KEY`, `IMAGE_BASE_URL`, `IMAGE_MODEL` | [platform.openai.com](https://platform.openai.com) → API keys |
+| **Hugging Face** | **Default** image provider for outfit preview (free) | `IMAGE_PROVIDER=huggingface`, `HF_API_KEY`, `HF_IMAGE_MODEL` | [huggingface.co/settings/tokens](https://huggingface.co/settings/tokens) — create a Read token |
 | **Cloudinary** *(optional)* | Alternative image hosting | `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET` | [cloudinary.com](https://cloudinary.com) → Dashboard |
 | **face-api.js** *(library)* | Face detection in the browser/server | No key — model files only | [github.com/justadudewhohacks/face-api.js](https://github.com/justadudewhohacks/face-api.js) |
 
