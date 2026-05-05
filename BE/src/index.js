@@ -8,6 +8,7 @@ import authRouter from "./routes/auth.js";
 import uploadRouter from "./routes/upload.js";
 import skinToneRouter from "./routes/skinTone.js";
 import appearanceRouter from "./routes/appearance.js";
+import weatherRouter from "./routes/weather.js";
 import outfitRouter from "./routes/outfit.js";
 import historyRouter from "./routes/history.js";
 import { errorHandler } from "./middlewares/errorHandler.js";
@@ -28,6 +29,7 @@ app.use("/api/auth", authRouter);
 app.use("/api/upload", uploadRouter);
 app.use("/api/skin-tone", skinToneRouter);
 app.use("/api/analyze-user", appearanceRouter);
+app.use("/api/weather", weatherRouter);
 app.use("/api/outfit", outfitRouter);
 app.use("/api/history", historyRouter);
 

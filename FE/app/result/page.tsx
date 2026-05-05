@@ -6,6 +6,7 @@ import ProtectedRoute from "@/components/ProtectedRoute";
 import { OutfitResponse } from "@/lib/outfit";
 import { clearFlowState, getFlowState } from "@/lib/flow";
 import OutfitPreview from "@/components/OutfitPreview";
+import { weatherEmoji, weatherSummary } from "@/lib/weather";
 
 const TONE_LABELS: Record<string, string> = {
   light: "Light",
@@ -119,6 +120,12 @@ export default function ResultPage() {
                   {(result.gender || result.ageGroup) && (
                     <p className="mt-0.5 text-xs capitalize text-neutral-500">
                       {[result.ageGroup, result.gender].filter(Boolean).join(" · ")}
+                    </p>
+                  )}
+                  {result.weather && (
+                    <p className="mt-0.5 inline-flex items-center gap-1 text-xs text-neutral-500">
+                      <span aria-hidden>{weatherEmoji(result.weather)}</span>
+                      {weatherSummary(result.weather)}
                     </p>
                   )}
                 </div>

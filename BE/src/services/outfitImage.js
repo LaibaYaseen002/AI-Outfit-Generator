@@ -36,6 +36,15 @@ function describeSubject({ gender, ageGroup, toneDesc }) {
   return `${ageQualifier}${genderWord} with a ${toneDesc}`;
 }
 
+function describeWeatherForImage(weather) {
+  if (!weather) return "";
+  const parts = [];
+  if (Number.isFinite(weather.tempC)) parts.push(`${weather.tempC}°C`);
+  if (weather.conditionLabel) parts.push(weather.conditionLabel.toLowerCase());
+  if (parts.length === 0) return "";
+  return `Weather context: ${parts.join(", ")} — render the outfit consistent with that climate (e.g., visible coat for cold, breathable fabrics for hot, closed footwear for rain).`;
+}
+
 export function buildImagePrompt({
   outfit,
   colors,
@@ -43,6 +52,7 @@ export function buildImagePrompt({
   skinTone,
   gender,
   ageGroup,
+  weather,
   preferences
 }) {
   const toneDesc = TONE_DESCRIPTIONS[skinTone] ?? "natural skin tone";
@@ -54,6 +64,7 @@ export function buildImagePrompt({
     ? `Accessories: ${outfit.accessories.join(", ")}.`
     : "";
   const styleHint = preferences?.style ? `Overall style: ${preferences.style}.` : "";
+  const weatherHint = describeWeatherForImage(weather);
 
   return [
     `Full-body fashion editorial photograph of a single mannequin-styled ${subject}, standing against a clean neutral light-grey studio backdrop, soft even lighting, photorealistic.`,
@@ -64,6 +75,7 @@ export function buildImagePrompt({
     accessories,
     palette,
     styleHint,
+    weatherHint,
     `Tasteful pose, natural posture, no text, no watermark, no logo, no brand markings. Show the entire outfit head-to-toe.`
   ]
     .filter(Boolean)
@@ -110,15 +122,17 @@ async function generateBase64ViaOpenAI(prompt) {
 }
 
 export async function generateOutfitImage({ userId, recommendation }) {
-  // Appearance attrs were stashed inside preferences by the outfit controller.
-  const appearance = recommendation.preferences ?? {};
+  // Appearance + weather attrs were stashed inside preferences by the outfit
+  // controller. The same JSON column carries both.
+  const stashed = recommendation.preferences ?? {};
   const prompt = buildImagePrompt({
     outfit: recommendation.outfit,
     colors: recommendation.colors,
     occasion: recommendation.occasion,
     skinTone: recommendation.skin_tone,
-    gender: appearance.gender ?? null,
-    ageGroup: appearance.ageGroup ?? null,
+    gender: stashed.gender ?? null,
+    ageGroup: stashed.ageGroup ?? null,
+    weather: stashed.weather ?? null,
     preferences: recommendation.preferences
   });
 

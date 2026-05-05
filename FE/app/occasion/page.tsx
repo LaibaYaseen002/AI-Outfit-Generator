@@ -4,8 +4,10 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import ProtectedRoute from "@/components/ProtectedRoute";
+import WeatherCard from "@/components/WeatherCard";
 import { getFlowState, setFlowState } from "@/lib/flow";
 import { generateOutfit } from "@/lib/outfit";
+import type { WeatherSnapshot } from "@/lib/weather";
 
 const OCCASIONS = [
   { id: "casual", label: "Casual", emoji: "🧢" },
@@ -31,6 +33,7 @@ export default function OccasionPage() {
   const [notes, setNotes] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [weather, setWeather] = useState<WeatherSnapshot | null>(null);
 
   useEffect(() => {
     const state = getFlowState();
@@ -39,7 +42,13 @@ export default function OccasionPage() {
     } else {
       setHasUpload(true);
     }
+    if (state.weather) setWeather(state.weather);
   }, []);
+
+  function handleWeatherChange(next: WeatherSnapshot | null) {
+    setWeather(next);
+    setFlowState({ weather: next ?? undefined });
+  }
 
   async function handleGenerate() {
     if (!occasion) {
@@ -76,6 +85,7 @@ export default function OccasionPage() {
         imagePath: state.upload?.path,
         gender: state.appearance?.gender,
         ageGroup: state.appearance?.ageGroup,
+        weather: state.weather ?? undefined,
         preferences
       });
       setFlowState({ ...getFlowState(), ...{} });
@@ -156,6 +166,8 @@ export default function OccasionPage() {
               })}
             </div>
           </section>
+
+          <WeatherCard value={weather} onChange={handleWeatherChange} />
 
           <section className="card space-y-5">
             <h2 className="text-lg font-semibold text-neutral-800">

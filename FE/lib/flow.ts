@@ -4,6 +4,7 @@
 import type { SkinToneResult } from "./skinTone";
 import type { UploadResult } from "./upload";
 import type { AgeGroup, Gender } from "./appearance";
+import type { WeatherSnapshot } from "./weather";
 
 const KEY = "outfit-flow-state-v1";
 
@@ -19,6 +20,7 @@ export interface FlowState {
   upload?: UploadResult;
   skinTone?: SkinToneResult;
   appearance?: FlowAppearance;
+  weather?: WeatherSnapshot;
   occasion?: string;
   preferences?: {
     style?: string;

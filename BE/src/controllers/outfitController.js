@@ -4,6 +4,15 @@ import { saveRecommendation } from "./historyController.js";
 const ALLOWED_TONES = ["light", "medium", "dark"];
 const ALLOWED_GENDERS = ["male", "female"];
 const ALLOWED_AGE_GROUPS = ["child", "teenager", "adult"];
+const WEATHER_BUCKETS = ["freezing", "cold", "cool", "mild", "warm", "hot"];
+const WEATHER_CONDITIONS = [
+  "clear",
+  "cloudy",
+  "rain",
+  "snow",
+  "thunder",
+  "fog"
+];
 
 function validateOptionalEnum(value, allowed, fieldName) {
   if (value == null) return null;
@@ -15,6 +24,65 @@ function validateOptionalEnum(value, allowed, fieldName) {
   return value;
 }
 
+function pickNumber(value) {
+  if (value == null) return null;
+  const n = Number(value);
+  return Number.isFinite(n) ? n : null;
+}
+
+/**
+ * Trust-but-validate the weather payload coming from the FE. We don't re-fetch
+ * here — the FE already called /api/weather. We just guard against junk that
+ * would derail the prompt or fail the JSON.stringify on persist.
+ */
+function sanitizeWeather(raw) {
+  if (raw == null) return null;
+  if (typeof raw !== "object" || Array.isArray(raw)) {
+    return { error: "'weather' must be an object" };
+  }
+
+  const tempC = pickNumber(raw.tempC);
+  if (tempC == null) {
+    return { error: "'weather.tempC' must be a finite number" };
+  }
+  if (raw.bucket && !WEATHER_BUCKETS.includes(raw.bucket)) {
+    return {
+      error: `'weather.bucket' must be one of: ${WEATHER_BUCKETS.join(", ")}`
+    };
+  }
+  if (raw.condition && !WEATHER_CONDITIONS.includes(raw.condition)) {
+    return {
+      error: `'weather.condition' must be one of: ${WEATHER_CONDITIONS.join(", ")}`
+    };
+  }
+
+  return {
+    tempC,
+    feelsLikeC: pickNumber(raw.feelsLikeC),
+    tempMinC: pickNumber(raw.tempMinC),
+    tempMaxC: pickNumber(raw.tempMaxC),
+    condition: typeof raw.condition === "string" ? raw.condition : null,
+    conditionLabel:
+      typeof raw.conditionLabel === "string"
+        ? raw.conditionLabel.slice(0, 80)
+        : null,
+    bucket: typeof raw.bucket === "string" ? raw.bucket : null,
+    windKph: pickNumber(raw.windKph),
+    precipitationMm: pickNumber(raw.precipitationMm),
+    humidity: pickNumber(raw.humidity),
+    isDaytime: typeof raw.isDaytime === "boolean" ? raw.isDaytime : null,
+    target: raw.target === "forecast" ? "forecast" : "current",
+    date: typeof raw.date === "string" ? raw.date.slice(0, 10) : null,
+    locationLabel:
+      typeof raw.locationLabel === "string"
+        ? raw.locationLabel.slice(0, 120)
+        : null,
+    timezone:
+      typeof raw.timezone === "string" ? raw.timezone.slice(0, 80) : null,
+    provider: typeof raw.provider === "string" ? raw.provider : "open-meteo"
+  };
+}
+
 export async function postGenerateOutfit(req, res, next) {
   try {
     const {
@@ -24,7 +92,8 @@ export async function postGenerateOutfit(req, res, next) {
       preferences,
       imagePath,
       gender: genderRaw,
-      ageGroup: ageGroupRaw
+      ageGroup: ageGroupRaw,
+      weather: weatherRaw
     } = req.body ?? {};
 
     if (!skinTone || !ALLOWED_TONES.includes(skinTone)) {
@@ -68,6 +137,14 @@ export async function postGenerateOutfit(req, res, next) {
     const gender = genderResult;
     const ageGroup = ageGroupResult;
 
+    const weatherResult = sanitizeWeather(weatherRaw);
+    if (weatherResult && weatherResult.error) {
+      return res
+        .status(400)
+        .json({ error: { message: weatherResult.error, status: 400 } });
+    }
+    const weather = weatherResult;
+
     if (imagePath != null) {
       if (typeof imagePath !== "string") {
         return res.status(400).json({
@@ -88,15 +165,18 @@ export async function postGenerateOutfit(req, res, next) {
       skinTone,
       skinHex,
       occasion,
+      weather,
       preferences: preferences ?? {}
     });
 
-    // Persist appearance attributes alongside other prefs so we don't need a
-    // new SQL column. The FE reads these back from the recommendation row.
+    // Persist appearance + weather attributes alongside other prefs so we
+    // don't need a new SQL column. The FE reads these back from the
+    // recommendation row.
     const persistedPreferences = {
       ...(preferences ?? {}),
       ...(gender ? { gender } : {}),
-      ...(ageGroup ? { ageGroup } : {})
+      ...(ageGroup ? { ageGroup } : {}),
+      ...(weather ? { weather } : {})
     };
 
     let savedId = null;
