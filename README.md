@@ -283,11 +283,59 @@ When no face is visible the endpoint responds `400`:
 
 The detection is implemented as an OpenAI-compatible vision call (see `BE/src/services/appearance.js`) — the same `OPENAI_API_KEY` / `OPENAI_BASE_URL` / `OPENAI_MODEL` env that already powers outfit generation. Any vision-capable model works (`gpt-4o-mini`, Groq Llama vision, OpenRouter equivalents). Detected `gender` and `ageGroup` are forwarded into `POST /api/outfit/generate` and persisted on the saved recommendation (currently inside `preferences.gender` / `preferences.ageGroup` to avoid a schema migration).
 
+### Weather (optional outfit input)
+
+| Method | Endpoint | Description | Auth |
+|--------|----------|-------------|------|
+| `POST` | `/api/weather` | Look up current weather or a forecast for given coordinates. | ✅ |
+| `POST` | `/api/weather/geocode` | Look up coordinates for a free-text place name. | ✅ |
+
+`POST /api/weather` request body:
+
+```json
+{
+  "lat": 31.5497,
+  "lon": 74.3436,
+  "date": "2026-05-08",          // optional — omit / null for "current"; max 15 days out
+  "locationLabel": "Lahore, PK"  // optional — passthrough; shown in the UI chip
+}
+```
+
+Successful response:
+
+```json
+{
+  "tempC": 32.4,
+  "feelsLikeC": 35.1,
+  "tempMinC": null,
+  "tempMaxC": null,
+  "condition": "clear",
+  "conditionLabel": "Clear sky",
+  "bucket": "hot",
+  "windKph": 14.2,
+  "precipitationMm": 0,
+  "humidity": 38,
+  "isDaytime": true,
+  "target": "current",
+  "date": "2026-05-05",
+  "locationLabel": "Lahore, PK",
+  "timezone": "Asia/Karachi",
+  "provider": "open-meteo",
+  "fetchedAt": "..."
+}
+```
+
+`POST /api/weather/geocode` body: `{ "query": "Lahore" }` → `{ "results": [{ name, country, admin1, latitude, longitude, label }] }`.
+
+Provider is **Open-Meteo** — free, no API key, no signup. The service file (`BE/src/services/weather.js`) is the only place that talks to the upstream, so swapping providers later is a one-file change. Free tier is non-commercial; if/when this app is monetized, switch to Open-Meteo's commercial plan or an alternative provider.
+
+When the FE forwards a `weather` object into `POST /api/outfit/generate`, the outfit prompt gains weather-aware styling guidance (heavy coat for ≤0°C, breathable fabrics for ≥30°C, water-resistant outerwear in rain, etc.) and the rendered outfit image describes a climate-consistent look. Persisted on the recommendation row inside `preferences.weather` (no schema migration).
+
 ### Outfit Recommendation
 
 | Method | Endpoint | Description | Auth |
 |--------|----------|-------------|------|
-| `POST` | `/api/outfit/generate` | Generate AI outfit based on skin tone, occasion, preferences, and (optional) detected `gender` + `ageGroup`. Returns the saved recommendation `id`. | ✅ |
+| `POST` | `/api/outfit/generate` | Generate AI outfit based on skin tone, occasion, preferences, (optional) detected `gender` + `ageGroup`, and (optional) `weather`. Returns the saved recommendation `id`. | ✅ |
 | `POST` | `/api/outfit/:id/preview` | Kick off async image generation for the saved recommendation. Idempotent — returns current state if a job is in flight or already done. Responds `202` when a new job is started. | ✅ |
 | `GET`  | `/api/outfit/:id/preview` | Poll the image-generation status. | ✅ |
 
