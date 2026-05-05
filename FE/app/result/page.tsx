@@ -6,6 +6,7 @@ import ProtectedRoute from "@/components/ProtectedRoute";
 import { OutfitResponse } from "@/lib/outfit";
 import { clearFlowState, getFlowState } from "@/lib/flow";
 import OutfitPreview from "@/components/OutfitPreview";
+import FavoriteButton from "@/components/FavoriteButton";
 import { weatherEmoji, weatherSummary } from "@/lib/weather";
 
 const TONE_LABELS: Record<string, string> = {
@@ -88,7 +89,19 @@ export default function ResultPage() {
               </p>
               <h1 className="page-title mt-1">Your outfit is ready</h1>
             </div>
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap items-center gap-2">
+              {result.id && (
+                <FavoriteButton
+                  id={result.id}
+                  initial={result.is_favorite ?? false}
+                  onChange={(next) =>
+                    setResult((prev) =>
+                      prev ? { ...prev, is_favorite: next } : prev
+                    )
+                  }
+                  variant="chip"
+                />
+              )}
               <Link href="/history" className="btn btn-sm btn-ghost">
                 History
               </Link>

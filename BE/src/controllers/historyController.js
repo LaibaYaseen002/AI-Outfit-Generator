@@ -9,6 +9,16 @@ function parsePositiveInt(value, fallback) {
   return Number.isFinite(n) && n > 0 ? n : fallback;
 }
 
+function parseFavoriteFlag(value) {
+  // Accept ?favorite=true|1|yes|on as truthy; everything else (including
+  // missing) means "no filter".
+  if (value == null) return null;
+  const v = String(value).toLowerCase();
+  if (v === "true" || v === "1" || v === "yes" || v === "on") return true;
+  if (v === "false" || v === "0" || v === "no" || v === "off") return false;
+  return null;
+}
+
 export async function listHistory(req, res, next) {
   try {
     const limit = Math.min(
@@ -17,11 +27,21 @@ export async function listHistory(req, res, next) {
     );
     const offset = parsePositiveInt(req.query.offset, 0) - 1 + 1; // 0-indexed
     const safeOffset = Number.isFinite(offset) && offset >= 0 ? offset : 0;
+    const favoriteFilter = parseFavoriteFlag(req.query.favorite);
 
-    const { data, error, count } = await supabaseAdmin
+    let query = supabaseAdmin
       .from(TABLE)
       .select("*", { count: "exact" })
-      .eq("user_id", req.user.id)
+      .eq("user_id", req.user.id);
+
+    if (favoriteFilter === true) {
+      query = query.eq("is_favorite", true);
+    }
+
+    // Favorites first, then most recent. The composite index added in
+    // 003_favorites.sql backs this ordering.
+    const { data, error, count } = await query
+      .order("is_favorite", { ascending: false })
       .order("created_at", { ascending: false })
       .range(safeOffset, safeOffset + limit - 1);
 
@@ -37,6 +57,41 @@ export async function listHistory(req, res, next) {
       offset: safeOffset,
       total: count ?? 0
     });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function setFavorite(req, res, next) {
+  try {
+    const { id } = req.params;
+    const { favorite } = req.body ?? {};
+    if (typeof favorite !== "boolean") {
+      return res.status(400).json({
+        error: { message: "Body field 'favorite' must be a boolean", status: 400 }
+      });
+    }
+
+    const { data, error } = await supabaseAdmin
+      .from(TABLE)
+      .update({ is_favorite: favorite })
+      .eq("id", id)
+      .eq("user_id", req.user.id)
+      .select("id, is_favorite")
+      .maybeSingle();
+
+    if (error) {
+      return res
+        .status(500)
+        .json({ error: { message: error.message, status: 500 } });
+    }
+    if (!data) {
+      return res
+        .status(404)
+        .json({ error: { message: "Recommendation not found", status: 404 } });
+    }
+
+    res.json({ id: data.id, is_favorite: data.is_favorite });
   } catch (err) {
     next(err);
   }

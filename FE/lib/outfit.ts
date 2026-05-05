@@ -20,6 +20,7 @@ export interface OutfitResponse {
   gender: Gender | null;
   ageGroup: AgeGroup | null;
   weather: WeatherSnapshot | null;
+  is_favorite: boolean;
   model: string;
 }
 

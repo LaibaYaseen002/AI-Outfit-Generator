@@ -199,7 +199,9 @@ export async function postGenerateOutfit(req, res, next) {
       console.error("[history] Failed to save recommendation:", saveErr);
     }
 
-    res.json({ ...result, id: savedId });
+    // New recommendations always start un-favorited; including the field
+    // here so the FE can show an unfilled-heart toggle immediately.
+    res.json({ ...result, id: savedId, is_favorite: false });
   } catch (err) {
     if (err?.status && err?.error) {
       return res.status(502).json({
