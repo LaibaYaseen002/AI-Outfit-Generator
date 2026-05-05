@@ -158,6 +158,7 @@ npm run dev                # starts Next.js on http://localhost:3000
 3. Run the SQL migrations from `BE/migrations/` in the Supabase SQL editor:
    - `001_recommendations.sql` — creates the `recommendations` table used by the History feature, with per-user RLS policies.
    - `002_outfit_image.sql` — adds `outfit_image_path`, `image_status`, `image_error`, `image_updated_at` columns used by the visual outfit preview feature.
+   - `003_favorites.sql` — adds `is_favorite` column + composite index for the Favorites feature, plus an `update` RLS policy.
 4. Create a **private** storage bucket named `user-photos`.
 5. Enable email/password auth under **Authentication → Providers**.
 
@@ -364,9 +365,10 @@ Every successful `POST /api/outfit/generate` automatically writes a row to the `
 
 | Method | Endpoint | Description | Auth |
 |--------|----------|-------------|------|
-| `GET`    | `/api/history`       | Fetch past recommendations (paginated). Query: `limit` (default 20, max 100), `offset` (default 0). | ✅ |
-| `GET`    | `/api/history/:id`   | Fetch a single saved recommendation | ✅ |
-| `DELETE` | `/api/history/:id`   | Delete a saved recommendation | ✅ |
+| `GET`    | `/api/history`               | Fetch past recommendations (paginated). Query: `limit` (default 20, max 100), `offset` (default 0), `favorite=true` to filter to favorited only. Items are returned favorites-first, then most recent. | ✅ |
+| `GET`    | `/api/history/:id`           | Fetch a single saved recommendation | ✅ |
+| `DELETE` | `/api/history/:id`           | Delete a saved recommendation | ✅ |
+| `PATCH`  | `/api/history/:id/favorite`  | Body: `{ "favorite": true \| false }`. Toggles the saved recommendation's favorite flag. Returns `{ id, is_favorite }`. | ✅ |
 
 `GET /api/history` returns:
 

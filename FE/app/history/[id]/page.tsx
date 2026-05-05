@@ -6,6 +6,7 @@ import Link from "next/link";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import HistoryThumb from "@/components/HistoryThumb";
 import OutfitPreview from "@/components/OutfitPreview";
+import FavoriteButton from "@/components/FavoriteButton";
 import {
   HistoryItem,
   deleteHistoryItem,
@@ -67,13 +68,25 @@ export default function HistoryDetailPage() {
               ← All history
             </Link>
             {item && (
-              <button
-                onClick={handleDelete}
-                disabled={deleting}
-                className="btn btn-sm btn-danger"
-              >
-                {deleting ? "Deleting…" : "Delete"}
-              </button>
+              <div className="flex items-center gap-2">
+                <FavoriteButton
+                  id={item.id}
+                  initial={item.is_favorite}
+                  onChange={(next) =>
+                    setItem((prev) =>
+                      prev ? { ...prev, is_favorite: next } : prev
+                    )
+                  }
+                  variant="chip"
+                />
+                <button
+                  onClick={handleDelete}
+                  disabled={deleting}
+                  className="btn btn-sm btn-danger"
+                >
+                  {deleting ? "Deleting…" : "Delete"}
+                </button>
+              </div>
             )}
           </div>
 

@@ -9,6 +9,7 @@ import {
   listHistory
 } from "@/lib/history";
 import HistoryThumb from "@/components/HistoryThumb";
+import FavoriteButton from "@/components/FavoriteButton";
 
 const PAGE_SIZE = 12;
 
@@ -36,12 +37,17 @@ export default function HistoryPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [favoritesOnly, setFavoritesOnly] = useState(false);
 
-  async function load(nextOffset: number) {
+  async function load(nextOffset: number, favOnly = favoritesOnly) {
     setLoading(true);
     setError(null);
     try {
-      const res = await listHistory({ limit: PAGE_SIZE, offset: nextOffset });
+      const res = await listHistory({
+        limit: PAGE_SIZE,
+        offset: nextOffset,
+        favorite: favOnly
+      });
       setItems(res.items);
       setTotal(res.total);
       setOffset(res.offset);
@@ -54,7 +60,31 @@ export default function HistoryPage() {
 
   useEffect(() => {
     load(0);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  function toggleFavoritesOnly() {
+    const next = !favoritesOnly;
+    setFavoritesOnly(next);
+    setOffset(0);
+    load(0, next);
+  }
+
+  function handleFavoriteChange(id: string, isFavorite: boolean) {
+    // Mutate the in-memory list so the heart stays in sync without refetch.
+    setItems((prev) =>
+      prev
+        ? prev
+            .map((it) => (it.id === id ? { ...it, is_favorite: isFavorite } : it))
+            // If we're filtered to favorites only, drop items that just got
+            // un-favorited so the list reflects the filter.
+            .filter((it) => (favoritesOnly ? it.is_favorite : true))
+        : prev
+    );
+    if (favoritesOnly && !isFavorite) {
+      setTotal((t) => Math.max(0, t - 1));
+    }
+  }
 
   async function handleDelete(id: string) {
     if (!confirm("Delete this saved outfit?")) return;
@@ -89,6 +119,20 @@ export default function HistoryPage() {
             </Link>
           </div>
 
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={toggleFavoritesOnly}
+              aria-pressed={favoritesOnly}
+              className={`btn btn-sm ${favoritesOnly ? "btn-primary" : "btn-secondary"}`}
+            >
+              <span aria-hidden className={favoritesOnly ? "text-rose-100" : "text-rose-500"}>
+                ♥
+              </span>
+              {favoritesOnly ? "Showing favorites" : "Favorites only"}
+            </button>
+          </div>
+
           {loading && items == null && (
             <div className="flex items-center gap-3 text-neutral-500">
               <div className="h-5 w-5 animate-spin rounded-full border-2 border-brand-200 border-t-brand-700" />
@@ -105,15 +149,26 @@ export default function HistoryPage() {
           {items != null && items.length === 0 && !loading && (
             <div className="card text-center">
               <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-brand-100 text-2xl">
-                👗
+                {favoritesOnly ? "♡" : "👗"}
               </div>
               <p className="mt-3 text-neutral-700">
-                No outfits yet. Generate your first one to see it here.
+                {favoritesOnly
+                  ? "No favorites yet. Tap the heart on any outfit to save it here."
+                  : "No outfits yet. Generate your first one to see it here."}
               </p>
-              <Link href="/upload" className="btn btn-md btn-primary mt-5">
-                Get started
-                <span aria-hidden>→</span>
-              </Link>
+              {favoritesOnly ? (
+                <button
+                  onClick={toggleFavoritesOnly}
+                  className="btn btn-md btn-secondary mt-5"
+                >
+                  Show all outfits
+                </button>
+              ) : (
+                <Link href="/upload" className="btn btn-md btn-primary mt-5">
+                  Get started
+                  <span aria-hidden>→</span>
+                </Link>
+              )}
             </div>
           )}
 
@@ -123,8 +178,16 @@ export default function HistoryPage() {
                 {items.map((item) => (
                   <li
                     key={item.id}
-                    className="group overflow-hidden rounded-3xl bg-white shadow-soft ring-1 ring-black/5 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-brand"
+                    className="group relative overflow-hidden rounded-3xl bg-white shadow-soft ring-1 ring-black/5 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-brand"
                   >
+                    <div className="absolute right-3 top-3 z-10">
+                      <FavoriteButton
+                        id={item.id}
+                        initial={item.is_favorite}
+                        onChange={(next) => handleFavoriteChange(item.id, next)}
+                        variant="icon"
+                      />
+                    </div>
                     <Link href={`/history/${item.id}`} className="block">
                       <div className="overflow-hidden">
                         <div className="transition-transform duration-300 group-hover:scale-[1.03]">

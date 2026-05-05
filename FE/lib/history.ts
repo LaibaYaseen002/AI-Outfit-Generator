@@ -25,6 +25,7 @@ export interface HistoryItem {
   image_status: PreviewStatus;
   image_error: string | null;
   image_updated_at: string | null;
+  is_favorite: boolean;
 }
 
 export interface HistoryListResponse {
@@ -35,15 +36,30 @@ export interface HistoryListResponse {
 }
 
 export async function listHistory(
-  params: { limit?: number; offset?: number } = {}
+  params: { limit?: number; offset?: number; favorite?: boolean } = {}
 ): Promise<HistoryListResponse> {
   const search = new URLSearchParams();
   if (params.limit != null) search.set("limit", String(params.limit));
   if (params.offset != null) search.set("offset", String(params.offset));
+  if (params.favorite) search.set("favorite", "true");
   const qs = search.toString();
   return apiFetch<HistoryListResponse>(`/history${qs ? `?${qs}` : ""}`, {
     auth: true
   });
+}
+
+export async function setFavorite(
+  id: string,
+  favorite: boolean
+): Promise<{ id: string; is_favorite: boolean }> {
+  return apiFetch<{ id: string; is_favorite: boolean }>(
+    `/history/${id}/favorite`,
+    {
+      method: "PATCH",
+      auth: true,
+      body: JSON.stringify({ favorite })
+    }
+  );
 }
 
 export async function getHistoryItem(id: string): Promise<HistoryItem> {
