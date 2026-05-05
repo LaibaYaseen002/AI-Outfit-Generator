@@ -24,31 +24,40 @@ export default function DashboardPage() {
 
   return (
     <ProtectedRoute>
-      <main className="flex min-h-screen flex-col items-center justify-center bg-brand-50 px-6 text-center">
-        <div className="w-full max-w-lg rounded-2xl bg-white p-10 shadow-lg">
-          <h1 className="text-3xl font-bold text-brand-700">
-            Welcome{email ? `, ${email}` : ""}!
+      <main className="page-center">
+        <div className="card w-full max-w-xl text-center animate-fade-in-up">
+          <span className="inline-flex items-center gap-2 rounded-full bg-brand-100 px-3 py-1 text-xs font-medium uppercase tracking-[0.18em] text-brand-800">
+            Dashboard
+          </span>
+
+          <h1 className="mt-4 text-3xl font-bold tracking-tight text-brand-800 sm:text-4xl">
+            Welcome{email ? "," : ""}
+            {email && (
+              <span className="block truncate text-2xl font-semibold text-brand-600 sm:text-3xl">
+                {email}
+              </span>
+            )}
           </h1>
-          <p className="mt-3 text-neutral-600">
+
+          <p className="mx-auto mt-3 max-w-md text-neutral-600">
             You&apos;re logged in. Start by uploading a photo to generate your
             first outfit recommendation.
           </p>
-          <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:justify-center">
+
+          <div className="mt-8 grid gap-3 sm:grid-cols-2">
             <Link
               href="/upload"
-              className="rounded-full bg-brand-700 px-6 py-3 text-white shadow hover:bg-brand-500 transition"
+              className="btn btn-lg btn-primary sm:col-span-2"
             >
               Try the Outfit Generator
+              <span aria-hidden>→</span>
             </Link>
-            <Link
-              href="/history"
-              className="rounded-full border border-brand-700 px-6 py-3 text-brand-700 hover:bg-brand-50 transition"
-            >
+            <Link href="/history" className="btn btn-md btn-secondary">
               View History
             </Link>
             <button
               onClick={handleLogout}
-              className="rounded-full border border-brand-700 px-6 py-3 text-brand-700 hover:bg-brand-50 transition"
+              className="btn btn-md btn-ghost"
             >
               Log out
             </button>

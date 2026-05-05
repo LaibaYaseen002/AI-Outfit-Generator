@@ -9,13 +9,12 @@ export default function SignupPage() {
   const router = useRouter();
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-brand-50 px-4">
-      <div className="w-full max-w-md space-y-4">
+    <main className="page-center">
+      <div className="w-full max-w-md space-y-6 animate-fade-in-up">
         <AuthForm
           mode="signup"
           onSubmit={async ({ email, password, fullName }) => {
             const data = await signUpWithEmail(email, password, fullName);
-            // If email confirmation is disabled, session is returned and user is logged in
             if (data.session) {
               router.push("/dashboard");
             } else {
@@ -28,7 +27,10 @@ export default function SignupPage() {
         />
         <p className="text-center text-sm text-neutral-600">
           Already have an account?{" "}
-          <Link href="/login" className="font-medium text-brand-700 hover:underline">
+          <Link
+            href="/login"
+            className="font-semibold text-brand-700 underline-offset-4 hover:underline"
+          >
             Log in
           </Link>
         </p>

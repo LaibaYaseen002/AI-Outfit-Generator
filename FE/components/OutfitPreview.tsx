@@ -75,9 +75,9 @@ export default function OutfitPreview({
 
   return (
     <div
-      className={`overflow-hidden rounded-2xl bg-white shadow-lg ${className}`}
+      className={`overflow-hidden rounded-3xl bg-white shadow-soft ring-1 ring-black/5 ${className}`}
     >
-      <div className="relative aspect-[2/3] w-full bg-brand-50">
+      <div className="relative aspect-[2/3] w-full bg-brand-gradient-soft">
         {status === "ready" && preview?.imageUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
@@ -90,7 +90,7 @@ export default function OutfitPreview({
             {isActive && (
               <>
                 <div className="h-12 w-12 animate-spin rounded-full border-4 border-brand-200 border-t-brand-700" />
-                <p className="text-sm font-medium text-brand-700">
+                <p className="text-sm font-semibold text-brand-800">
                   {status === "generating"
                     ? "Painting your outfit on a model…"
                     : "Starting visual preview…"}
@@ -103,7 +103,7 @@ export default function OutfitPreview({
             {status === "failed" && (
               <>
                 <div className="text-3xl">🖼️</div>
-                <p className="text-sm font-medium text-red-700">
+                <p className="text-sm font-semibold text-red-700">
                   Couldn&apos;t generate the preview image.
                 </p>
                 <p className="text-xs text-neutral-500">
@@ -112,7 +112,7 @@ export default function OutfitPreview({
                 <button
                   onClick={handleRetry}
                   disabled={retrying}
-                  className="mt-2 rounded-full bg-brand-700 px-5 py-2 text-sm text-white shadow hover:bg-brand-500 disabled:opacity-60 transition"
+                  className="btn btn-sm btn-primary mt-2"
                 >
                   {retrying ? "Retrying…" : "Try again"}
                 </button>

@@ -9,8 +9,8 @@ export default function LoginPage() {
   const router = useRouter();
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-brand-50 px-4">
-      <div className="w-full max-w-md space-y-4">
+    <main className="page-center">
+      <div className="w-full max-w-md space-y-6 animate-fade-in-up">
         <AuthForm
           mode="login"
           onSubmit={async ({ email, password }) => {
@@ -22,7 +22,7 @@ export default function LoginPage() {
           Don&apos;t have an account?{" "}
           <Link
             href="/signup"
-            className="font-medium text-brand-700 hover:underline"
+            className="font-semibold text-brand-700 underline-offset-4 hover:underline"
           >
             Sign up
           </Link>

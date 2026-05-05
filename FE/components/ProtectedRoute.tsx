@@ -43,8 +43,11 @@ export default function ProtectedRoute({
 
   if (checking) {
     return (
-      <main className="flex min-h-screen items-center justify-center">
-        <p className="text-neutral-500">Loading…</p>
+      <main className="page-center">
+        <div className="flex flex-col items-center gap-3">
+          <div className="h-10 w-10 animate-spin rounded-full border-4 border-brand-200 border-t-brand-700" />
+          <p className="text-sm font-medium text-brand-700">Loading…</p>
+        </div>
       </main>
     );
   }

@@ -32,58 +32,58 @@ export default function AuthForm({ mode, onSubmit }: AuthFormProps) {
   }
 
   return (
-    <form
-      onSubmit={handleSubmit}
-      className="w-full max-w-md space-y-4 rounded-2xl bg-white p-8 shadow-lg"
-    >
-      <h2 className="text-2xl font-bold text-brand-700">
-        {mode === "login" ? "Welcome back" : "Create your account"}
-      </h2>
+    <form onSubmit={handleSubmit} className="card space-y-5">
+      <div className="space-y-1.5 text-center">
+        <h2 className="text-2xl font-bold text-brand-800">
+          {mode === "login" ? "Welcome back" : "Create your account"}
+        </h2>
+        <p className="text-sm text-neutral-500">
+          {mode === "login"
+            ? "Sign in to continue styling your looks."
+            : "A few details and you’re styled in seconds."}
+        </p>
+      </div>
 
       {mode === "signup" && (
         <div>
-          <label className="block text-sm font-medium text-neutral-700">
-            Full name
-          </label>
+          <label className="label">Full name</label>
           <input
             type="text"
             value={fullName}
             onChange={(e) => setFullName(e.target.value)}
-            className="mt-1 w-full rounded-lg border border-neutral-300 px-3 py-2 focus:border-brand-500 focus:outline-none"
+            className="input"
             placeholder="Jane Doe"
           />
         </div>
       )}
 
       <div>
-        <label className="block text-sm font-medium text-neutral-700">Email</label>
+        <label className="label">Email</label>
         <input
           type="email"
           required
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className="mt-1 w-full rounded-lg border border-neutral-300 px-3 py-2 focus:border-brand-500 focus:outline-none"
+          className="input"
           placeholder="you@example.com"
         />
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-neutral-700">
-          Password
-        </label>
+        <label className="label">Password</label>
         <input
           type="password"
           required
           minLength={6}
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          className="mt-1 w-full rounded-lg border border-neutral-300 px-3 py-2 focus:border-brand-500 focus:outline-none"
+          className="input"
           placeholder="••••••••"
         />
       </div>
 
       {error && (
-        <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
+        <p className="rounded-xl bg-red-50 px-4 py-2.5 text-sm text-red-700 ring-1 ring-red-100">
           {error}
         </p>
       )}
@@ -91,7 +91,7 @@ export default function AuthForm({ mode, onSubmit }: AuthFormProps) {
       <button
         type="submit"
         disabled={loading}
-        className="w-full rounded-full bg-brand-700 py-3 font-medium text-white shadow hover:bg-brand-500 disabled:cursor-not-allowed disabled:opacity-60 transition"
+        className="btn btn-lg btn-primary btn-block"
       >
         {loading
           ? "Please wait…"

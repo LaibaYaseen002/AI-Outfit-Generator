@@ -5,6 +5,7 @@
 :root {
   --background: 253 246 240;
   --foreground: 30 24 20;
+  --ring: 200 136 74;
 }
 
 html,
@@ -12,4 +13,124 @@ body {
   background-color: rgb(var(--background));
   color: rgb(var(--foreground));
   min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+@layer components {
+  /* ---------- Page shells ---------- */
+  .page {
+    @apply min-h-screen bg-page-glow px-4 py-10 sm:px-6 sm:py-14;
+  }
+  .page-center {
+    @apply flex min-h-screen items-center justify-center bg-page-glow px-4 py-10 sm:px-6;
+  }
+  .container-narrow {
+    @apply mx-auto w-full max-w-3xl;
+  }
+  .container-wide {
+    @apply mx-auto w-full max-w-5xl;
+  }
+  .page-header {
+    @apply flex flex-wrap items-center justify-between gap-3;
+  }
+  .page-title {
+    @apply text-3xl font-bold tracking-tight text-brand-800 sm:text-4xl;
+  }
+
+  /* ---------- Cards ---------- */
+  .card {
+    @apply rounded-3xl bg-white/90 p-6 shadow-soft ring-1 ring-black/5 backdrop-blur-sm sm:p-8;
+  }
+  .card-flat {
+    @apply rounded-3xl bg-white p-5 shadow-soft ring-1 ring-black/5;
+  }
+
+  /* ---------- Inputs ---------- */
+  .input {
+    @apply mt-1 block w-full rounded-xl border border-neutral-300 bg-white px-4 py-2.5 text-neutral-800 shadow-sm transition focus:border-brand-500 focus:outline-none focus:ring-4 focus:ring-brand-500/15;
+  }
+  .label {
+    @apply block text-sm font-medium text-neutral-700;
+  }
+
+  /* ---------- Button system ---------- */
+  /* Base: shared layout, typography, transitions, focus-visible, disabled */
+  .btn {
+    @apply relative inline-flex select-none items-center justify-center gap-2
+           whitespace-nowrap rounded-full px-6 py-3 text-sm font-semibold leading-none
+           tracking-wide outline-none transition-all duration-200 ease-out
+           focus-visible:ring-4 focus-visible:ring-brand-500/30
+           disabled:pointer-events-none disabled:opacity-60 disabled:saturate-50
+           active:translate-y-px;
+  }
+
+  /* Sizes */
+  .btn-sm {
+    @apply h-9 px-4 py-0 text-xs;
+  }
+  .btn-md {
+    @apply h-11 px-6 py-0 text-sm;
+  }
+  .btn-lg {
+    @apply h-14 px-8 py-0 text-base;
+  }
+  .btn-block {
+    @apply w-full;
+  }
+
+  /* Variants */
+  .btn-primary {
+    @apply text-white bg-brand-gradient shadow-brand
+           hover:-translate-y-0.5 hover:shadow-brand-lg
+           focus-visible:ring-brand-500/40;
+  }
+  .btn-primary::after {
+    content: "";
+    @apply pointer-events-none absolute inset-0 rounded-full opacity-0 transition-opacity duration-200;
+    background: linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.18) 0%,
+      rgba(255, 255, 255, 0) 60%
+    );
+  }
+  .btn-primary:hover::after {
+    @apply opacity-100;
+  }
+
+  .btn-secondary {
+    @apply border border-brand-700/70 bg-white text-brand-800 shadow-sm
+           hover:-translate-y-0.5 hover:border-brand-700 hover:bg-brand-50 hover:shadow-brand;
+  }
+
+  .btn-soft {
+    @apply bg-brand-100 text-brand-800 shadow-sm
+           hover:-translate-y-0.5 hover:bg-brand-200 hover:shadow-brand;
+  }
+
+  .btn-ghost {
+    @apply bg-transparent text-brand-800 hover:bg-brand-100/70;
+  }
+
+  .btn-danger {
+    @apply border border-red-200 bg-white text-red-600 shadow-sm
+           hover:-translate-y-0.5 hover:border-red-300 hover:bg-red-50;
+  }
+
+  /* Icon (square pill) */
+  .btn-icon {
+    @apply h-10 w-10 rounded-full p-0;
+  }
+
+  /* Subtle text link, used for inline “← Back” style anchors */
+  .link-back {
+    @apply inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-sm font-medium
+           text-brand-700 transition hover:bg-brand-100/70 hover:text-brand-800;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
 }
