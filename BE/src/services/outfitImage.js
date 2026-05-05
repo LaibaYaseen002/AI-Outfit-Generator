@@ -12,14 +12,41 @@ const TONE_DESCRIPTIONS = {
   dark: "deep / dark skin tone"
 };
 
+// Picks the right mannequin/model archetype from the detected appearance.
+function describeSubject({ gender, ageGroup, toneDesc }) {
+  const ageWord =
+    ageGroup === "child"
+      ? "child"
+      : ageGroup === "teenager"
+        ? "teenage"
+        : "adult";
+  const genderWord =
+    gender === "male"
+      ? ageGroup === "child"
+        ? "boy"
+        : "man"
+      : gender === "female"
+        ? ageGroup === "child"
+          ? "girl"
+          : "woman"
+        : "person";
+  // "adult man" is redundant; drop "adult" qualifier when not a child/teen
+  const ageQualifier =
+    ageGroup === "child" || ageGroup === "teenager" ? `${ageWord} ` : "";
+  return `${ageQualifier}${genderWord} with a ${toneDesc}`;
+}
+
 export function buildImagePrompt({
   outfit,
   colors,
   occasion,
   skinTone,
+  gender,
+  ageGroup,
   preferences
 }) {
   const toneDesc = TONE_DESCRIPTIONS[skinTone] ?? "natural skin tone";
+  const subject = describeSubject({ gender, ageGroup, toneDesc });
   const palette = Array.isArray(colors) && colors.length
     ? `Color palette: ${colors.join(", ")}.`
     : "";
@@ -29,7 +56,7 @@ export function buildImagePrompt({
   const styleHint = preferences?.style ? `Overall style: ${preferences.style}.` : "";
 
   return [
-    `Full-body fashion editorial photograph of a single mannequin-styled model with a ${toneDesc}, standing against a clean neutral light-grey studio backdrop, soft even lighting, photorealistic.`,
+    `Full-body fashion editorial photograph of a single mannequin-styled ${subject}, standing against a clean neutral light-grey studio backdrop, soft even lighting, photorealistic.`,
     `The model is wearing the following complete outfit for ${occasion}:`,
     `Top: ${outfit.top}.`,
     `Bottom: ${outfit.bottom}.`,
@@ -83,11 +110,15 @@ async function generateBase64ViaOpenAI(prompt) {
 }
 
 export async function generateOutfitImage({ userId, recommendation }) {
+  // Appearance attrs were stashed inside preferences by the outfit controller.
+  const appearance = recommendation.preferences ?? {};
   const prompt = buildImagePrompt({
     outfit: recommendation.outfit,
     colors: recommendation.colors,
     occasion: recommendation.occasion,
     skinTone: recommendation.skin_tone,
+    gender: appearance.gender ?? null,
+    ageGroup: appearance.ageGroup ?? null,
     preferences: recommendation.preferences
   });
 

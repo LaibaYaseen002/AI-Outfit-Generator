@@ -41,14 +41,16 @@ export default function HistoryThumb({
 
   if (!effectivePath || failed) {
     return (
-      <div className="flex aspect-square w-full items-center justify-center bg-brand-100 text-brand-700">
+      <div className="flex aspect-square w-full items-center justify-center bg-brand-gradient-soft text-brand-700">
         <span className="text-3xl">👗</span>
       </div>
     );
   }
 
   if (!url) {
-    return <div className="aspect-square w-full animate-pulse bg-neutral-200" />;
+    return (
+      <div className="aspect-square w-full animate-pulse bg-gradient-to-br from-brand-50 to-brand-100" />
+    );
   }
 
   return (

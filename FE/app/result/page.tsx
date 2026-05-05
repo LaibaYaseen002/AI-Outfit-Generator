@@ -35,17 +35,19 @@ export default function ResultPage() {
   if (missing) {
     return (
       <ProtectedRoute>
-        <main className="flex min-h-screen items-center justify-center bg-brand-50 px-4">
-          <div className="max-w-md rounded-2xl bg-white p-8 text-center shadow">
-            <h1 className="text-xl font-bold text-brand-700">No result yet</h1>
+        <main className="page-center">
+          <div className="card max-w-md text-center animate-fade-in-up">
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-brand-100 text-2xl">
+              ✨
+            </div>
+            <h1 className="mt-3 text-xl font-bold text-brand-800">
+              No result yet
+            </h1>
             <p className="mt-2 text-neutral-600">
               Looks like you haven&apos;t generated an outfit. Start by
               uploading a photo.
             </p>
-            <Link
-              href="/upload"
-              className="mt-5 inline-block rounded-full bg-brand-700 px-6 py-3 text-white shadow hover:bg-brand-500 transition"
-            >
+            <Link href="/upload" className="btn btn-md btn-primary mt-6">
               Start over
             </Link>
           </div>
@@ -57,8 +59,13 @@ export default function ResultPage() {
   if (!result) {
     return (
       <ProtectedRoute>
-        <main className="flex min-h-screen items-center justify-center">
-          <p className="text-neutral-500">Loading your outfit…</p>
+        <main className="page-center">
+          <div className="flex flex-col items-center gap-3">
+            <div className="h-10 w-10 animate-spin rounded-full border-4 border-brand-200 border-t-brand-700" />
+            <p className="text-sm font-medium text-brand-700">
+              Loading your outfit…
+            </p>
+          </div>
         </main>
       </ProtectedRoute>
     );
@@ -71,43 +78,49 @@ export default function ResultPage() {
 
   return (
     <ProtectedRoute>
-      <main className="min-h-screen bg-brand-50 px-4 py-12">
-        <div className="mx-auto w-full max-w-3xl space-y-6">
-          <div className="flex items-center justify-between">
-            <h1 className="text-3xl font-bold text-brand-700">
-              Your outfit is ready
-            </h1>
-            <div className="flex gap-4 text-sm text-brand-700">
-              <Link href="/history" className="hover:underline">
+      <main className="page">
+        <div className="container-narrow space-y-6 animate-fade-in-up">
+          <div className="page-header">
+            <div>
+              <p className="text-xs font-medium uppercase tracking-[0.2em] text-brand-500">
+                Step 3 of 3
+              </p>
+              <h1 className="page-title mt-1">Your outfit is ready</h1>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Link href="/history" className="btn btn-sm btn-ghost">
                 History
               </Link>
-              <Link href="/dashboard" className="hover:underline">
+              <Link href="/dashboard" className="btn btn-sm btn-secondary">
                 Dashboard →
               </Link>
             </div>
           </div>
 
-          {result.id && (
-            <OutfitPreview recommendationId={result.id} />
-          )}
+          {result.id && <OutfitPreview recommendationId={result.id} />}
 
-          <div className="rounded-2xl bg-white p-6 shadow-lg">
+          <div className="card">
             <div className="flex flex-wrap items-center justify-between gap-4">
               <div className="flex items-center gap-3">
                 {skinHex && (
                   <div
-                    className="h-10 w-10 rounded-full border-2 border-white shadow"
+                    className="h-12 w-12 rounded-full border-4 border-white shadow-brand ring-1 ring-black/5"
                     style={{ backgroundColor: skinHex }}
                   />
                 )}
                 <div>
-                  <p className="text-xs uppercase tracking-wide text-neutral-500">
+                  <p className="text-xs uppercase tracking-[0.18em] text-neutral-500">
                     Skin tone · Occasion
                   </p>
                   <p className="font-semibold text-neutral-800">
                     {TONE_LABELS[result.skinTone] ?? result.skinTone} ·{" "}
                     <span className="capitalize">{result.occasion}</span>
                   </p>
+                  {(result.gender || result.ageGroup) && (
+                    <p className="mt-0.5 text-xs capitalize text-neutral-500">
+                      {[result.ageGroup, result.gender].filter(Boolean).join(" · ")}
+                    </p>
+                  )}
                 </div>
               </div>
               <div className="flex gap-2">
@@ -115,7 +128,7 @@ export default function ResultPage() {
                   <div
                     key={c}
                     title={c}
-                    className="h-8 w-8 rounded-full border-2 border-white shadow"
+                    className="h-9 w-9 rounded-full border-2 border-white shadow-soft ring-1 ring-black/5"
                     style={{ backgroundColor: c }}
                   />
                 ))}
@@ -127,8 +140,8 @@ export default function ResultPage() {
             <OutfitItem label="Top" value={result.outfit.top} />
             <OutfitItem label="Bottom" value={result.outfit.bottom} />
             <OutfitItem label="Footwear" value={result.outfit.footwear} />
-            <div className="rounded-2xl bg-white p-5 shadow">
-              <p className="text-xs uppercase tracking-wide text-neutral-500">
+            <div className="card-flat">
+              <p className="text-xs uppercase tracking-[0.18em] text-neutral-500">
                 Accessories
               </p>
               <ul className="mt-2 space-y-1 text-neutral-800">
@@ -139,24 +152,23 @@ export default function ResultPage() {
             </div>
           </div>
 
-          <div className="rounded-2xl bg-white p-6 shadow">
-            <h2 className="text-lg font-semibold text-brand-700">
+          <div className="card">
+            <h2 className="text-lg font-semibold text-brand-800">
               Why this works
             </h2>
-            <p className="mt-2 text-neutral-700">{result.explanation}</p>
+            <p className="mt-2 leading-relaxed text-neutral-700">
+              {result.explanation}
+            </p>
           </div>
 
-          <div className="flex flex-col gap-3 sm:flex-row sm:justify-between">
-            <Link
-              href="/occasion"
-              className="rounded-full border border-brand-700 px-6 py-3 text-center text-brand-700 hover:bg-brand-50 transition"
-            >
+          <div className="flex flex-col-reverse items-stretch justify-between gap-3 sm:flex-row sm:items-center">
+            <Link href="/occasion" className="btn btn-md btn-secondary">
               ← Try a different occasion
             </Link>
             <Link
               href="/upload"
               onClick={startOver}
-              className="rounded-full bg-brand-700 px-6 py-3 text-center text-white shadow hover:bg-brand-500 transition"
+              className="btn btn-md btn-primary"
             >
               Start over with a new photo
             </Link>
@@ -169,8 +181,10 @@ export default function ResultPage() {
 
 function OutfitItem({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-2xl bg-white p-5 shadow">
-      <p className="text-xs uppercase tracking-wide text-neutral-500">{label}</p>
+    <div className="card-flat">
+      <p className="text-xs uppercase tracking-[0.18em] text-neutral-500">
+        {label}
+      </p>
       <p className="mt-1 text-neutral-800">{value}</p>
     </div>
   );

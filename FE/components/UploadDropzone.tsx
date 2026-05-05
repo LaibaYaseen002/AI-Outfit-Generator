@@ -55,10 +55,10 @@ export default function UploadDropzone({
         }}
         onDragLeave={() => setDragOver(false)}
         onDrop={handleDrop}
-        className={`flex h-64 cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed transition ${
+        className={`group flex h-72 cursor-pointer flex-col items-center justify-center rounded-3xl border-2 border-dashed transition-all duration-200 ${
           dragOver
-            ? "border-brand-500 bg-brand-50"
-            : "border-neutral-300 bg-white hover:border-brand-500"
+            ? "border-brand-500 bg-brand-50 scale-[1.01]"
+            : "border-brand-200 bg-white/80 hover:border-brand-500 hover:bg-brand-50/60"
         } ${disabled ? "cursor-not-allowed opacity-60" : ""}`}
       >
         {previewUrl ? (
@@ -66,11 +66,14 @@ export default function UploadDropzone({
           <img
             src={previewUrl}
             alt="preview"
-            className="h-full w-full rounded-2xl object-contain p-2"
+            className="h-full w-full rounded-3xl object-contain p-2"
           />
         ) : (
           <>
-            <p className="text-lg font-medium text-neutral-700">
+            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-brand-100 text-2xl text-brand-700 shadow-inner-soft transition-transform group-hover:scale-110">
+              ⬆
+            </div>
+            <p className="mt-4 text-base font-semibold text-brand-800">
               Drop your photo here
             </p>
             <p className="mt-1 text-sm text-neutral-500">
@@ -89,7 +92,7 @@ export default function UploadDropzone({
       </div>
 
       {error && (
-        <p className="mt-3 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
+        <p className="mt-3 rounded-xl bg-red-50 px-4 py-2.5 text-sm text-red-700 ring-1 ring-red-100">
           {error}
         </p>
       )}

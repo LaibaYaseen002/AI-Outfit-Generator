@@ -7,6 +7,24 @@ interface ApiOptions extends RequestInit {
   auth?: boolean;
 }
 
+export class ApiError extends Error {
+  status: number;
+  code?: string;
+  details?: unknown;
+  constructor(
+    message: string,
+    status: number,
+    code?: string,
+    details?: unknown
+  ) {
+    super(message);
+    this.name = "ApiError";
+    this.status = status;
+    this.code = code;
+    this.details = details;
+  }
+}
+
 export async function apiFetch<T>(
   path: string,
   options: ApiOptions = {}
@@ -18,7 +36,7 @@ export async function apiFetch<T>(
 
   if (options.auth) {
     const token = await getAccessToken();
-    if (!token) throw new Error("Not authenticated");
+    if (!token) throw new ApiError("Not authenticated", 401);
     headers.Authorization = `Bearer ${token}`;
   }
 
@@ -26,13 +44,17 @@ export async function apiFetch<T>(
 
   if (!res.ok) {
     let message = `Request failed: ${res.status}`;
+    let code: string | undefined;
+    let details: unknown;
     try {
       const body = await res.json();
       message = body?.error?.message || message;
+      code = body?.error?.code;
+      details = body?.error?.details;
     } catch {
       /* ignore */
     }
-    throw new Error(message);
+    throw new ApiError(message, res.status, code, details);
   }
 
   return (await res.json()) as T;

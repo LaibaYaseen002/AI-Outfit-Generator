@@ -3,12 +3,22 @@
 
 import type { SkinToneResult } from "./skinTone";
 import type { UploadResult } from "./upload";
+import type { AgeGroup, Gender } from "./appearance";
 
 const KEY = "outfit-flow-state-v1";
+
+export interface FlowAppearance {
+  gender: Gender;
+  ageGroup: AgeGroup;
+  confidence: number;
+  // True when the user explicitly chose / confirmed via the override UI.
+  overridden: boolean;
+}
 
 export interface FlowState {
   upload?: UploadResult;
   skinTone?: SkinToneResult;
+  appearance?: FlowAppearance;
   occasion?: string;
   preferences?: {
     style?: string;

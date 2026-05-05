@@ -1,8 +1,8 @@
 import { openai, OPENAI_MODEL } from "./openai.js";
 
 const SYSTEM_PROMPT = `You are a professional fashion stylist for the AI Outfit Generator app.
-Given a person's skin tone, the occasion, and any preferences, recommend ONE complete outfit.
-Choose colors that flatter the given skin tone, are appropriate for the occasion, and respect the user's preferences.
+Given a person's appearance (gender presentation, age group, skin tone), the occasion, and any preferences, recommend ONE complete outfit.
+Choose colors that flatter the given skin tone, are appropriate for the occasion and the person's age group, and respect the user's preferences.
 Be specific (fabric, fit, exact color names) but avoid brand names.
 Return ONLY valid JSON matching this exact schema — no prose, no markdown:
 
@@ -14,19 +14,38 @@ Return ONLY valid JSON matching this exact schema — no prose, no markdown:
     "accessories": ["string", "..."]
   },
   "colors": ["#RRGGBB", "#RRGGBB", "#RRGGBB"],
-  "explanation": "1-3 sentences on why this works for the user's skin tone and occasion"
+  "explanation": "1-3 sentences on why this works for the user's skin tone, age, and occasion"
 }
 
 Rules:
 - "colors" must contain exactly 3 hex codes (with #) representing the dominant colors of the outfit.
 - "accessories" must contain 1-4 items.
-- Keep each string under 80 characters.`;
+- Keep each string under 80 characters.
 
-function buildUserMessage({ skinTone, skinHex, occasion, preferences }) {
-  const lines = [
-    `Skin tone: ${skinTone}${skinHex ? ` (approx ${skinHex})` : ""}`,
-    `Occasion: ${occasion}`
-  ];
+Age-group guidance:
+- child     → simple, comfortable, playful pieces; safe materials; no jewelry-heavy looks; no formal-only adult cuts.
+- teenager  → trendy, casual, age-appropriate; avoid overly formal or overly mature styling.
+- adult     → full styled outfits; can include formal, elevated, and statement pieces as the occasion calls.
+
+Gender guidance:
+- Use gendered garment vocabulary that matches the given presentation (e.g., shirt/dress/kurta cuts, neckline, silhouette).
+- Accessories should be contextually appropriate for the gender + occasion + age combo.`;
+
+function buildUserMessage({
+  gender,
+  ageGroup,
+  skinTone,
+  skinHex,
+  occasion,
+  preferences
+}) {
+  const lines = [];
+  if (gender) lines.push(`Gender presentation: ${gender}`);
+  if (ageGroup) lines.push(`Age group: ${ageGroup}`);
+  lines.push(
+    `Skin tone: ${skinTone}${skinHex ? ` (approx ${skinHex})` : ""}`
+  );
+  lines.push(`Occasion: ${occasion}`);
 
   if (preferences?.style) lines.push(`Preferred style: ${preferences.style}`);
   if (preferences?.colorsLike?.length)
@@ -39,7 +58,7 @@ function buildUserMessage({ skinTone, skinHex, occasion, preferences }) {
 }
 
 export async function generateOutfit(input) {
-  const { skinTone, skinHex, occasion, preferences } = input;
+  const { gender, ageGroup, skinTone, skinHex, occasion, preferences } = input;
 
   const completion = await openai.chat.completions.create({
     model: OPENAI_MODEL,
@@ -49,7 +68,14 @@ export async function generateOutfit(input) {
       { role: "system", content: SYSTEM_PROMPT },
       {
         role: "user",
-        content: buildUserMessage({ skinTone, skinHex, occasion, preferences })
+        content: buildUserMessage({
+          gender,
+          ageGroup,
+          skinTone,
+          skinHex,
+          occasion,
+          preferences
+        })
       }
     ]
   });
@@ -83,6 +109,8 @@ export async function generateOutfit(input) {
     outfit: parsed.outfit,
     colors: parsed.colors,
     explanation: parsed.explanation,
+    gender: gender ?? null,
+    ageGroup: ageGroup ?? null,
     skinTone,
     occasion,
     model: OPENAI_MODEL

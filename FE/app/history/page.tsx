@@ -75,58 +75,68 @@ export default function HistoryPage() {
 
   return (
     <ProtectedRoute>
-      <main className="min-h-screen bg-brand-50 px-4 py-12">
-        <div className="mx-auto w-full max-w-5xl space-y-6">
-          <div className="flex items-center justify-between">
-            <h1 className="text-3xl font-bold text-brand-700">Your history</h1>
-            <Link
-              href="/dashboard"
-              className="text-sm text-brand-700 hover:underline"
-            >
+      <main className="page">
+        <div className="container-wide space-y-6 animate-fade-in-up">
+          <div className="page-header">
+            <div>
+              <p className="text-xs font-medium uppercase tracking-[0.2em] text-brand-500">
+                Saved looks
+              </p>
+              <h1 className="page-title mt-1">Your history</h1>
+            </div>
+            <Link href="/dashboard" className="link-back">
               ← Dashboard
             </Link>
           </div>
 
           {loading && items == null && (
-            <p className="text-neutral-500">Loading your past outfits…</p>
+            <div className="flex items-center gap-3 text-neutral-500">
+              <div className="h-5 w-5 animate-spin rounded-full border-2 border-brand-200 border-t-brand-700" />
+              Loading your past outfits…
+            </div>
           )}
 
           {error && (
-            <div className="rounded-2xl bg-red-50 p-4 text-red-700">
+            <div className="rounded-2xl bg-red-50 px-5 py-4 text-red-700 ring-1 ring-red-100">
               {error}
             </div>
           )}
 
           {items != null && items.length === 0 && !loading && (
-            <div className="rounded-2xl bg-white p-10 text-center shadow">
-              <p className="text-neutral-700">
+            <div className="card text-center">
+              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-brand-100 text-2xl">
+                👗
+              </div>
+              <p className="mt-3 text-neutral-700">
                 No outfits yet. Generate your first one to see it here.
               </p>
-              <Link
-                href="/upload"
-                className="mt-5 inline-block rounded-full bg-brand-700 px-6 py-3 text-white shadow hover:bg-brand-500 transition"
-              >
+              <Link href="/upload" className="btn btn-md btn-primary mt-5">
                 Get started
+                <span aria-hidden>→</span>
               </Link>
             </div>
           )}
 
           {items != null && items.length > 0 && (
             <>
-              <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              <ul className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
                 {items.map((item) => (
                   <li
                     key={item.id}
-                    className="group overflow-hidden rounded-2xl bg-white shadow hover:shadow-lg transition"
+                    className="group overflow-hidden rounded-3xl bg-white shadow-soft ring-1 ring-black/5 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-brand"
                   >
                     <Link href={`/history/${item.id}`} className="block">
-                      <HistoryThumb
-                        outfitImagePath={item.outfit_image_path}
-                        userImagePath={item.image_path}
-                      />
-                      <div className="p-4">
+                      <div className="overflow-hidden">
+                        <div className="transition-transform duration-300 group-hover:scale-[1.03]">
+                          <HistoryThumb
+                            outfitImagePath={item.outfit_image_path}
+                            userImagePath={item.image_path}
+                          />
+                        </div>
+                      </div>
+                      <div className="p-5">
                         <div className="flex items-center justify-between">
-                          <p className="text-xs uppercase tracking-wide text-neutral-500">
+                          <p className="text-xs uppercase tracking-[0.18em] text-neutral-500">
                             {formatDate(item.created_at)}
                           </p>
                           <div className="flex gap-1">
@@ -134,13 +144,13 @@ export default function HistoryPage() {
                               <span
                                 key={c}
                                 title={c}
-                                className="h-4 w-4 rounded-full border border-white shadow"
+                                className="h-4 w-4 rounded-full border border-white shadow ring-1 ring-black/5"
                                 style={{ backgroundColor: c }}
                               />
                             ))}
                           </div>
                         </div>
-                        <p className="mt-2 font-semibold capitalize text-neutral-800">
+                        <p className="mt-2 text-base font-semibold capitalize text-neutral-800">
                           {item.occasion}
                         </p>
                         <p className="text-sm text-neutral-600">
@@ -151,11 +161,11 @@ export default function HistoryPage() {
                         </p>
                       </div>
                     </Link>
-                    <div className="flex justify-end border-t border-neutral-100 p-2">
+                    <div className="flex justify-end border-t border-neutral-100 px-3 py-2">
                       <button
                         onClick={() => handleDelete(item.id)}
                         disabled={deletingId === item.id}
-                        className="rounded-full px-3 py-1 text-sm text-red-600 hover:bg-red-50 disabled:opacity-50"
+                        className="btn btn-sm btn-ghost text-red-600 hover:bg-red-50"
                       >
                         {deletingId === item.id ? "Deleting…" : "Delete"}
                       </button>
@@ -164,11 +174,11 @@ export default function HistoryPage() {
                 ))}
               </ul>
 
-              <div className="flex items-center justify-between pt-2">
+              <div className="flex items-center justify-between gap-3 pt-2">
                 <button
                   onClick={() => load(Math.max(0, offset - PAGE_SIZE))}
                   disabled={!hasPrev || loading}
-                  className="rounded-full border border-brand-700 px-5 py-2 text-brand-700 hover:bg-brand-50 disabled:cursor-not-allowed disabled:opacity-40 transition"
+                  className="btn btn-sm btn-secondary"
                 >
                   ← Newer
                 </button>
@@ -178,7 +188,7 @@ export default function HistoryPage() {
                 <button
                   onClick={() => load(offset + PAGE_SIZE)}
                   disabled={!hasNext || loading}
-                  className="rounded-full border border-brand-700 px-5 py-2 text-brand-700 hover:bg-brand-50 disabled:cursor-not-allowed disabled:opacity-40 transition"
+                  className="btn btn-sm btn-secondary"
                 >
                   Older →
                 </button>
