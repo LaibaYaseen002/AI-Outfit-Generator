@@ -1,5 +1,6 @@
 import { apiFetch } from "./api";
 import type { SkinTone } from "./skinTone";
+import type { AgeGroup, Gender } from "./appearance";
 
 export interface Outfit {
   top: string;
@@ -15,6 +16,8 @@ export interface OutfitResponse {
   explanation: string;
   skinTone: SkinTone;
   occasion: string;
+  gender: Gender | null;
+  ageGroup: AgeGroup | null;
   model: string;
 }
 
@@ -23,6 +26,8 @@ export interface GenerateOutfitInput {
   skinHex?: string;
   occasion: string;
   imagePath?: string;
+  gender?: Gender;
+  ageGroup?: AgeGroup;
   preferences?: {
     style?: string;
     colorsLike?: string[];

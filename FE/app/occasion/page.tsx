@@ -74,10 +74,11 @@ export default function OccasionPage() {
         skinHex: state.skinTone.hex,
         occasion,
         imagePath: state.upload?.path,
+        gender: state.appearance?.gender,
+        ageGroup: state.appearance?.ageGroup,
         preferences
       });
       setFlowState({ ...getFlowState(), ...{} });
-      // Stash result for the result page
       sessionStorage.setItem("outfit-result-v1", JSON.stringify(result));
       router.push("/result");
     } catch (err) {
@@ -89,18 +90,21 @@ export default function OccasionPage() {
   if (hasUpload === false) {
     return (
       <ProtectedRoute>
-        <main className="flex min-h-screen items-center justify-center bg-brand-50 px-4">
-          <div className="max-w-md rounded-2xl bg-white p-8 text-center shadow">
-            <h1 className="text-xl font-bold text-brand-700">Upload first</h1>
+        <main className="page-center">
+          <div className="card max-w-md text-center animate-fade-in-up">
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-brand-100 text-2xl">
+              📸
+            </div>
+            <h1 className="mt-3 text-xl font-bold text-brand-800">
+              Upload first
+            </h1>
             <p className="mt-2 text-neutral-600">
               We need a photo to detect your skin tone before recommending an
               outfit.
             </p>
-            <Link
-              href="/upload"
-              className="mt-5 inline-block rounded-full bg-brand-700 px-6 py-3 text-white shadow hover:bg-brand-500 transition"
-            >
+            <Link href="/upload" className="btn btn-md btn-primary mt-6">
               Go to upload
+              <span aria-hidden>→</span>
             </Link>
           </div>
         </main>
@@ -110,16 +114,16 @@ export default function OccasionPage() {
 
   return (
     <ProtectedRoute>
-      <main className="min-h-screen bg-brand-50 px-4 py-12">
-        <div className="mx-auto w-full max-w-3xl space-y-8">
-          <div className="flex items-center justify-between">
-            <h1 className="text-3xl font-bold text-brand-700">
-              Where are you going?
-            </h1>
-            <Link
-              href="/upload"
-              className="text-sm text-brand-700 hover:underline"
-            >
+      <main className="page">
+        <div className="container-narrow space-y-8 animate-fade-in-up">
+          <div className="page-header">
+            <div>
+              <p className="text-xs font-medium uppercase tracking-[0.2em] text-brand-500">
+                Step 2 of 3
+              </p>
+              <h1 className="page-title mt-1">Where are you going?</h1>
+            </div>
+            <Link href="/upload" className="link-back">
               ← Back
             </Link>
           </div>
@@ -129,102 +133,110 @@ export default function OccasionPage() {
               Pick an occasion
             </h2>
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-              {OCCASIONS.map((o) => (
-                <button
-                  key={o.id}
-                  onClick={() => setOccasion(o.id)}
-                  className={`rounded-2xl border-2 p-4 text-left transition ${
-                    occasion === o.id
-                      ? "border-brand-700 bg-brand-100"
-                      : "border-transparent bg-white hover:border-brand-500"
-                  }`}
-                >
-                  <div className="text-2xl">{o.emoji}</div>
-                  <div className="mt-2 font-medium text-neutral-800">
-                    {o.label}
-                  </div>
-                </button>
-              ))}
+              {OCCASIONS.map((o) => {
+                const selected = occasion === o.id;
+                return (
+                  <button
+                    key={o.id}
+                    onClick={() => setOccasion(o.id)}
+                    className={`group flex flex-col items-start gap-2 rounded-2xl border-2 p-4 text-left transition-all duration-200 ${
+                      selected
+                        ? "border-brand-700 bg-brand-gradient-soft shadow-brand -translate-y-0.5"
+                        : "border-transparent bg-white shadow-soft hover:-translate-y-0.5 hover:border-brand-300 hover:shadow-brand"
+                    }`}
+                  >
+                    <span className="flex h-11 w-11 items-center justify-center rounded-full bg-brand-100 text-2xl shadow-inner-soft transition-transform group-hover:scale-110">
+                      {o.emoji}
+                    </span>
+                    <span className="font-semibold text-neutral-800">
+                      {o.label}
+                    </span>
+                  </button>
+                );
+              })}
             </div>
           </section>
 
-          <section className="space-y-4 rounded-2xl bg-white p-6 shadow">
+          <section className="card space-y-5">
             <h2 className="text-lg font-semibold text-neutral-800">
-              Preferences <span className="text-sm text-neutral-500">(optional)</span>
+              Preferences{" "}
+              <span className="text-sm font-normal text-neutral-500">
+                (optional)
+              </span>
             </h2>
 
             <div>
-              <label className="block text-sm font-medium text-neutral-700">
-                Style
-              </label>
+              <label className="label">Style</label>
               <div className="mt-2 flex flex-wrap gap-2">
-                {STYLES.map((s) => (
-                  <button
-                    key={s}
-                    onClick={() => setStyle(style === s ? "" : s)}
-                    className={`rounded-full border px-4 py-1 text-sm capitalize transition ${
-                      style === s
-                        ? "border-brand-700 bg-brand-700 text-white"
-                        : "border-neutral-300 bg-white text-neutral-700 hover:border-brand-500"
-                    }`}
-                  >
-                    {s}
-                  </button>
-                ))}
+                {STYLES.map((s) => {
+                  const selected = style === s;
+                  return (
+                    <button
+                      key={s}
+                      onClick={() => setStyle(selected ? "" : s)}
+                      className={`btn btn-sm capitalize ${
+                        selected ? "btn-primary" : "btn-secondary"
+                      }`}
+                    >
+                      {s}
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
-                <label className="block text-sm font-medium text-neutral-700">
-                  Colors I like (comma-separated)
+                <label className="label">
+                  Colors I like{" "}
+                  <span className="font-normal text-neutral-500">
+                    (comma-separated)
+                  </span>
                 </label>
                 <input
                   type="text"
                   value={colorsLike}
                   onChange={(e) => setColorsLike(e.target.value)}
                   placeholder="navy, beige, olive"
-                  className="mt-1 w-full rounded-lg border border-neutral-300 px-3 py-2 focus:border-brand-500 focus:outline-none"
+                  className="input"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-neutral-700">
-                  Colors to avoid
-                </label>
+                <label className="label">Colors to avoid</label>
                 <input
                   type="text"
                   value={colorsAvoid}
                   onChange={(e) => setColorsAvoid(e.target.value)}
                   placeholder="neon, pastel pink"
-                  className="mt-1 w-full rounded-lg border border-neutral-300 px-3 py-2 focus:border-brand-500 focus:outline-none"
+                  className="input"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-neutral-700">
-                Anything else?
-              </label>
+              <label className="label">Anything else?</label>
               <textarea
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 rows={2}
                 placeholder="e.g. I prefer modest cuts, must include a jacket, etc."
-                className="mt-1 w-full rounded-lg border border-neutral-300 px-3 py-2 focus:border-brand-500 focus:outline-none"
+                className="input"
               />
             </div>
           </section>
 
           {error && (
-            <div className="rounded-2xl bg-red-50 p-4 text-red-700">{error}</div>
+            <div className="rounded-2xl bg-red-50 px-5 py-4 text-red-700 ring-1 ring-red-100">
+              {error}
+            </div>
           )}
 
           <button
             onClick={handleGenerate}
             disabled={submitting}
-            className="w-full rounded-full bg-brand-700 py-4 text-lg font-medium text-white shadow hover:bg-brand-500 disabled:cursor-not-allowed disabled:opacity-60 transition"
+            className="btn btn-lg btn-primary btn-block"
           >
-            {submitting ? "Crafting your outfit…" : "Generate Outfit"}
+            {submitting ? "Crafting your outfit…" : "Generate Outfit ✨"}
           </button>
         </div>
       </main>

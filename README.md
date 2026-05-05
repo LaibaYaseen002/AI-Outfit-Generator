@@ -250,11 +250,44 @@ All backend endpoints are prefixed with `/api`.
 |--------|----------|-------------|------|
 | `POST` | `/api/skin-tone` | Analyze uploaded photo, return `light` / `medium` / `dark` | ✅ |
 
+### Appearance Detection (gender + age group)
+
+| Method | Endpoint | Description | Auth |
+|--------|----------|-------------|------|
+| `POST` | `/api/analyze-user` | Analyze the uploaded photo and estimate apparent gender and age group. | ✅ |
+
+Request body: `{ "path": "<userId>/<uuid>.jpg" }` — must be a path inside the user's own folder (per-user scoping is enforced).
+
+Successful response:
+
+```json
+{
+  "path": "<userId>/<uuid>.jpg",
+  "gender": "female",
+  "ageGroup": "adult",
+  "confidence": 0.87,
+  "status": "ok",
+  "reason": "front-facing adult woman, well lit"
+}
+```
+
+`status` is one of:
+- `ok` — confidence ≥ 0.70, safe to use the call as-is.
+- `low_confidence` — confidence < 0.70; the FE prompts the user to confirm or override.
+
+When no face is visible the endpoint responds `400`:
+
+```json
+{ "error": { "message": "Please upload a clear front-facing image.", "status": 400, "code": "NO_FACE_DETECTED" } }
+```
+
+The detection is implemented as an OpenAI-compatible vision call (see `BE/src/services/appearance.js`) — the same `OPENAI_API_KEY` / `OPENAI_BASE_URL` / `OPENAI_MODEL` env that already powers outfit generation. Any vision-capable model works (`gpt-4o-mini`, Groq Llama vision, OpenRouter equivalents). Detected `gender` and `ageGroup` are forwarded into `POST /api/outfit/generate` and persisted on the saved recommendation (currently inside `preferences.gender` / `preferences.ageGroup` to avoid a schema migration).
+
 ### Outfit Recommendation
 
 | Method | Endpoint | Description | Auth |
 |--------|----------|-------------|------|
-| `POST` | `/api/outfit/generate` | Generate AI outfit based on skin tone, occasion, preferences. Returns the saved recommendation `id`. | ✅ |
+| `POST` | `/api/outfit/generate` | Generate AI outfit based on skin tone, occasion, preferences, and (optional) detected `gender` + `ageGroup`. Returns the saved recommendation `id`. | ✅ |
 | `POST` | `/api/outfit/:id/preview` | Kick off async image generation for the saved recommendation. Idempotent — returns current state if a job is in flight or already done. Responds `202` when a new job is started. | ✅ |
 | `GET`  | `/api/outfit/:id/preview` | Poll the image-generation status. | ✅ |
 

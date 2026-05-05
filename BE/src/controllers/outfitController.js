@@ -2,11 +2,30 @@ import { generateOutfit } from "../services/outfit.js";
 import { saveRecommendation } from "./historyController.js";
 
 const ALLOWED_TONES = ["light", "medium", "dark"];
+const ALLOWED_GENDERS = ["male", "female"];
+const ALLOWED_AGE_GROUPS = ["child", "teenager", "adult"];
+
+function validateOptionalEnum(value, allowed, fieldName) {
+  if (value == null) return null;
+  if (typeof value !== "string" || !allowed.includes(value)) {
+    return {
+      error: `'${fieldName}' must be one of: ${allowed.join(", ")}`
+    };
+  }
+  return value;
+}
 
 export async function postGenerateOutfit(req, res, next) {
   try {
-    const { skinTone, skinHex, occasion, preferences, imagePath } =
-      req.body ?? {};
+    const {
+      skinTone,
+      skinHex,
+      occasion,
+      preferences,
+      imagePath,
+      gender: genderRaw,
+      ageGroup: ageGroupRaw
+    } = req.body ?? {};
 
     if (!skinTone || !ALLOWED_TONES.includes(skinTone)) {
       return res.status(400).json({
@@ -22,8 +41,33 @@ export async function postGenerateOutfit(req, res, next) {
         .json({ error: { message: "'occasion' is required", status: 400 } });
     }
 
-    // If the FE forwards the image storage path, validate it belongs to this user
-    // (same convention as upload/skin-tone — first folder is the owner ID).
+    const genderResult = validateOptionalEnum(
+      genderRaw,
+      ALLOWED_GENDERS,
+      "gender"
+    );
+    if (genderResult && typeof genderResult === "object" && genderResult.error) {
+      return res
+        .status(400)
+        .json({ error: { message: genderResult.error, status: 400 } });
+    }
+    const ageGroupResult = validateOptionalEnum(
+      ageGroupRaw,
+      ALLOWED_AGE_GROUPS,
+      "ageGroup"
+    );
+    if (
+      ageGroupResult &&
+      typeof ageGroupResult === "object" &&
+      ageGroupResult.error
+    ) {
+      return res
+        .status(400)
+        .json({ error: { message: ageGroupResult.error, status: 400 } });
+    }
+    const gender = genderResult;
+    const ageGroup = ageGroupResult;
+
     if (imagePath != null) {
       if (typeof imagePath !== "string") {
         return res.status(400).json({
@@ -39,11 +83,21 @@ export async function postGenerateOutfit(req, res, next) {
     }
 
     const result = await generateOutfit({
+      gender,
+      ageGroup,
       skinTone,
       skinHex,
       occasion,
       preferences: preferences ?? {}
     });
+
+    // Persist appearance attributes alongside other prefs so we don't need a
+    // new SQL column. The FE reads these back from the recommendation row.
+    const persistedPreferences = {
+      ...(preferences ?? {}),
+      ...(gender ? { gender } : {}),
+      ...(ageGroup ? { ageGroup } : {})
+    };
 
     let savedId = null;
     try {
@@ -53,7 +107,7 @@ export async function postGenerateOutfit(req, res, next) {
         skinTone,
         skinHex,
         occasion,
-        preferences: preferences ?? {},
+        preferences: persistedPreferences,
         outfit: result.outfit,
         colors: result.colors,
         explanation: result.explanation,
@@ -61,15 +115,12 @@ export async function postGenerateOutfit(req, res, next) {
       });
       savedId = saved.id;
     } catch (saveErr) {
-      // Don't fail the request if persistence fails — the user still gets
-      // their outfit. Log so we can investigate misconfigured tables.
       // eslint-disable-next-line no-console
       console.error("[history] Failed to save recommendation:", saveErr);
     }
 
     res.json({ ...result, id: savedId });
   } catch (err) {
-    // Surface OpenAI errors with a 502 so the FE can distinguish from a 500
     if (err?.status && err?.error) {
       return res.status(502).json({
         error: {

@@ -6,9 +6,17 @@ import { useRouter } from "next/navigation";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import UploadDropzone from "@/components/UploadDropzone";
 import SkinToneCard from "@/components/SkinToneCard";
+import AppearanceCard from "@/components/AppearanceCard";
 import { uploadImage, UploadResult } from "@/lib/upload";
 import { detectSkinTone, SkinToneResult } from "@/lib/skinTone";
-import { setFlowState, clearFlowState } from "@/lib/flow";
+import {
+  analyzeAppearance,
+  AppearanceResult,
+  AgeGroup,
+  Gender
+} from "@/lib/appearance";
+import { setFlowState, clearFlowState, FlowAppearance } from "@/lib/flow";
+import { ApiError } from "@/lib/api";
 
 export default function UploadPage() {
   const router = useRouter();
@@ -23,6 +31,11 @@ export default function UploadPage() {
   const [skinTone, setSkinTone] = useState<SkinToneResult | null>(null);
   const [skinToneError, setSkinToneError] = useState<string | null>(null);
 
+  const [appearance, setAppearance] = useState<AppearanceResult | null>(null);
+  const [appearanceOverridden, setAppearanceOverridden] = useState(false);
+  const [appearanceError, setAppearanceError] = useState<string | null>(null);
+  const [noFace, setNoFace] = useState(false);
+
   useEffect(() => {
     if (!file) {
       setPreviewUrl(null);
@@ -33,6 +46,10 @@ export default function UploadPage() {
     return () => URL.revokeObjectURL(url);
   }, [file]);
 
+  function persistAppearance(next: FlowAppearance) {
+    setFlowState({ appearance: next });
+  }
+
   async function handleUpload() {
     if (!file) return;
     setError(null);
@@ -41,27 +58,62 @@ export default function UploadPage() {
     setResult(null);
     setSkinTone(null);
     setSkinToneError(null);
+    setAppearance(null);
+    setAppearanceOverridden(false);
+    setAppearanceError(null);
+    setNoFace(false);
 
     try {
       const uploaded = await uploadImage(file, setProgress);
       setResult(uploaded);
       setFlowState({ upload: uploaded });
 
-      // Auto-run skin tone detection on the uploaded path
       setAnalyzing(true);
-      try {
-        const tone = await detectSkinTone(uploaded.path);
-        setSkinTone(tone);
-        setFlowState({ skinTone: tone });
-      } catch (err) {
+
+      // Run skin-tone and appearance detection in parallel — they share the
+      // same uploaded image and have no inter-dependency.
+      const [toneOutcome, appearanceOutcome] = await Promise.allSettled([
+        detectSkinTone(uploaded.path),
+        analyzeAppearance(uploaded.path)
+      ]);
+
+      if (toneOutcome.status === "fulfilled") {
+        setSkinTone(toneOutcome.value);
+        setFlowState({ skinTone: toneOutcome.value });
+      } else {
         setSkinToneError(
-          err instanceof Error ? err.message : "Skin tone detection failed"
+          toneOutcome.reason instanceof Error
+            ? toneOutcome.reason.message
+            : "Skin tone detection failed"
         );
-      } finally {
-        setAnalyzing(false);
       }
+
+      if (appearanceOutcome.status === "fulfilled") {
+        const a = appearanceOutcome.value;
+        setAppearance(a);
+        persistAppearance({
+          gender: a.gender,
+          ageGroup: a.ageGroup,
+          confidence: a.confidence,
+          overridden: false
+        });
+      } else {
+        const reason = appearanceOutcome.reason;
+        if (reason instanceof ApiError && reason.code === "NO_FACE_DETECTED") {
+          setNoFace(true);
+        } else {
+          setAppearanceError(
+            reason instanceof Error
+              ? reason.message
+              : "Appearance detection failed"
+          );
+        }
+      }
+
+      setAnalyzing(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Upload failed");
+      setAnalyzing(false);
     } finally {
       setUploading(false);
     }
@@ -74,27 +126,60 @@ export default function UploadPage() {
     setError(null);
     setSkinTone(null);
     setSkinToneError(null);
+    setAppearance(null);
+    setAppearanceOverridden(false);
+    setAppearanceError(null);
+    setNoFace(false);
     clearFlowState();
   }
 
+  function handleAppearanceChange(next: { gender: Gender; ageGroup: AgeGroup }) {
+    if (!appearance) return;
+    const updated: AppearanceResult = {
+      ...appearance,
+      gender: next.gender,
+      ageGroup: next.ageGroup,
+      // After manual selection treat as fully confident.
+      status: "ok",
+      confidence: 1
+    };
+    setAppearance(updated);
+    setAppearanceOverridden(true);
+    persistAppearance({
+      gender: updated.gender,
+      ageGroup: updated.ageGroup,
+      confidence: updated.confidence,
+      overridden: true
+    });
+  }
+
+  // Continue is only allowed when both skin-tone and appearance are settled.
+  // Low confidence is fine ONLY after the user has touched the override.
+  const needsConfirmation =
+    !!appearance && appearance.status === "low_confidence" && !appearanceOverridden;
+  const canContinue =
+    !!skinTone && !!appearance && !needsConfirmation && !analyzing;
+
   return (
     <ProtectedRoute>
-      <main className="min-h-screen bg-brand-50 px-4 py-12">
-        <div className="mx-auto w-full max-w-2xl space-y-6">
-          <div className="flex items-center justify-between">
-            <h1 className="text-3xl font-bold text-brand-700">Upload your photo</h1>
-            <Link
-              href="/dashboard"
-              className="text-sm text-brand-700 hover:underline"
-            >
+      <main className="page">
+        <div className="container-narrow space-y-7 animate-fade-in-up">
+          <div className="page-header">
+            <div>
+              <p className="text-xs font-medium uppercase tracking-[0.2em] text-brand-500">
+                Step 1 of 3
+              </p>
+              <h1 className="page-title mt-1">Upload your photo</h1>
+            </div>
+            <Link href="/dashboard" className="link-back">
               ← Dashboard
             </Link>
           </div>
 
           <p className="text-neutral-600">
-            Pick a clear, front-facing photo. We&apos;ll detect your skin tone
-            and use it (along with your chosen occasion) to generate outfit
-            ideas in the next step.
+            Pick a clear, front-facing photo. We&apos;ll auto-detect your skin
+            tone, gender, and age group to tailor the outfit — you can override
+            anything before continuing.
           </p>
 
           <UploadDropzone
@@ -104,9 +189,9 @@ export default function UploadPage() {
           />
 
           {file && !result && (
-            <div className="rounded-2xl bg-white p-4 shadow">
+            <div className="card-flat">
               <p className="text-sm text-neutral-700">
-                <span className="font-medium">{file.name}</span>{" "}
+                <span className="font-semibold">{file.name}</span>{" "}
                 <span className="text-neutral-500">
                   ({(file.size / 1024).toFixed(1)} KB)
                 </span>
@@ -116,7 +201,7 @@ export default function UploadPage() {
                 <div className="mt-3">
                   <div className="h-2 w-full overflow-hidden rounded-full bg-neutral-200">
                     <div
-                      className="h-full bg-brand-500 transition-all"
+                      className="h-full bg-brand-gradient transition-all"
                       style={{ width: `${progress}%` }}
                     />
                   </div>
@@ -124,76 +209,114 @@ export default function UploadPage() {
                 </div>
               )}
 
-              <div className="mt-4 flex gap-3">
-                <button
-                  onClick={handleUpload}
-                  disabled={uploading}
-                  className="rounded-full bg-brand-700 px-5 py-2 text-white shadow hover:bg-brand-500 disabled:opacity-60 transition"
-                >
-                  {uploading ? "Uploading…" : "Upload"}
-                </button>
+              <div className="mt-5 flex flex-wrap items-center justify-end gap-3">
                 <button
                   onClick={reset}
                   disabled={uploading}
-                  className="rounded-full border border-neutral-300 px-5 py-2 text-neutral-700 hover:bg-neutral-50 disabled:opacity-60 transition"
+                  className="btn btn-md btn-ghost"
                 >
                   Cancel
+                </button>
+                <button
+                  onClick={handleUpload}
+                  disabled={uploading}
+                  className="btn btn-md btn-primary"
+                >
+                  {uploading ? "Uploading…" : "Upload"}
                 </button>
               </div>
             </div>
           )}
 
           {error && (
-            <div className="rounded-2xl bg-red-50 p-4 text-red-700">{error}</div>
+            <div className="rounded-2xl bg-red-50 px-5 py-4 text-red-700 ring-1 ring-red-100">
+              {error}
+            </div>
           )}
 
           {result && (
-            <div className="rounded-2xl bg-white p-6 shadow-lg">
-              <h2 className="text-xl font-bold text-green-700">
-                ✓ Upload successful
+            <div className="card animate-fade-in-up">
+              <h2 className="flex items-center gap-2 text-xl font-bold text-emerald-700">
+                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-100 text-sm">
+                  ✓
+                </span>
+                Upload successful
               </h2>
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={result.url}
                 alt="uploaded"
-                className="mt-4 max-h-80 w-full rounded-xl object-contain"
+                className="mt-4 max-h-80 w-full rounded-2xl object-contain"
               />
             </div>
           )}
 
           {analyzing && (
-            <div className="rounded-2xl bg-white p-6 shadow">
-              <p className="text-neutral-600">Analyzing skin tone…</p>
+            <div className="card-flat">
+              <p className="font-medium text-neutral-700">
+                Analyzing your photo…
+              </p>
+              <p className="mt-1 text-xs text-neutral-500">
+                Detecting skin tone, gender, and age group.
+              </p>
               <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-neutral-200">
-                <div className="h-full w-1/3 animate-pulse bg-brand-500" />
+                <div className="h-full w-1/3 animate-pulse bg-brand-gradient" />
               </div>
+            </div>
+          )}
+
+          {noFace && (
+            <div className="rounded-2xl bg-amber-50 px-5 py-4 text-amber-800 ring-1 ring-amber-100">
+              <p className="font-semibold">No face detected</p>
+              <p className="mt-1 text-sm">
+                Please upload a clear front-facing image so we can detect your
+                appearance.
+              </p>
+              <button onClick={reset} className="btn btn-sm btn-secondary mt-3">
+                Try a different photo
+              </button>
             </div>
           )}
 
           {skinToneError && (
-            <div className="rounded-2xl bg-red-50 p-4 text-red-700">
+            <div className="rounded-2xl bg-red-50 px-5 py-4 text-red-700 ring-1 ring-red-100">
               {skinToneError}
             </div>
           )}
 
-          {skinTone && (
-            <>
-              <SkinToneCard result={skinTone} />
-              <div className="flex justify-between">
-                <button
-                  onClick={reset}
-                  className="rounded-full border border-brand-700 px-5 py-2 text-brand-700 hover:bg-brand-50 transition"
-                >
-                  Upload another
-                </button>
-                <button
-                  onClick={() => router.push("/occasion")}
-                  className="rounded-full bg-brand-700 px-5 py-2 text-white shadow hover:bg-brand-500 transition"
-                >
-                  Continue → Pick occasion
-                </button>
-              </div>
-            </>
+          {appearanceError && !noFace && (
+            <div className="rounded-2xl bg-red-50 px-5 py-4 text-red-700 ring-1 ring-red-100">
+              {appearanceError}
+            </div>
+          )}
+
+          {skinTone && <SkinToneCard result={skinTone} />}
+
+          {appearance && (
+            <AppearanceCard
+              gender={appearance.gender}
+              ageGroup={appearance.ageGroup}
+              confidence={appearance.confidence}
+              overridden={appearanceOverridden}
+              needsConfirmation={needsConfirmation}
+              onChange={handleAppearanceChange}
+            />
+          )}
+
+          {(skinTone || appearance) && (
+            <div className="flex flex-col-reverse items-stretch justify-between gap-3 sm:flex-row sm:items-center">
+              <button onClick={reset} className="btn btn-md btn-secondary">
+                Upload another
+              </button>
+              <button
+                onClick={() => router.push("/occasion")}
+                disabled={!canContinue}
+                className="btn btn-md btn-primary"
+              >
+                Continue
+                <span aria-hidden>→</span>
+              </button>
+            </div>
           )}
         </div>
       </main>
