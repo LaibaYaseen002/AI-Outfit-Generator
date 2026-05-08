@@ -7,6 +7,7 @@ import { OutfitResponse } from "@/lib/outfit";
 import { clearFlowState, getFlowState } from "@/lib/flow";
 import OutfitPreview from "@/components/OutfitPreview";
 import FavoriteButton from "@/components/FavoriteButton";
+import ShareButton from "@/components/ShareButton";
 import { weatherEmoji, weatherSummary } from "@/lib/weather";
 
 const TONE_LABELS: Record<string, string> = {
@@ -102,6 +103,7 @@ export default function ResultPage() {
                   variant="chip"
                 />
               )}
+              {result.id && <ShareButton id={result.id} />}
               <Link href="/history" className="btn btn-sm btn-ghost">
                 History
               </Link>

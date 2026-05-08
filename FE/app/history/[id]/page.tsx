@@ -7,6 +7,7 @@ import ProtectedRoute from "@/components/ProtectedRoute";
 import HistoryThumb from "@/components/HistoryThumb";
 import OutfitPreview from "@/components/OutfitPreview";
 import FavoriteButton from "@/components/FavoriteButton";
+import ShareButton from "@/components/ShareButton";
 import {
   HistoryItem,
   deleteHistoryItem,
@@ -78,6 +79,15 @@ export default function HistoryDetailPage() {
                     )
                   }
                   variant="chip"
+                />
+                <ShareButton
+                  id={item.id}
+                  initialToken={item.share_token}
+                  onChange={(next) =>
+                    setItem((prev) =>
+                      prev ? { ...prev, share_token: next } : prev
+                    )
+                  }
                 />
                 <button
                   onClick={handleDelete}

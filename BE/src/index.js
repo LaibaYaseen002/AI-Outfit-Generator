@@ -11,6 +11,7 @@ import appearanceRouter from "./routes/appearance.js";
 import weatherRouter from "./routes/weather.js";
 import outfitRouter from "./routes/outfit.js";
 import historyRouter from "./routes/history.js";
+import shareRouter from "./routes/share.js";
 import { errorHandler } from "./middlewares/errorHandler.js";
 import { notFound } from "./middlewares/notFound.js";
 
@@ -32,6 +33,7 @@ app.use("/api/analyze-user", appearanceRouter);
 app.use("/api/weather", weatherRouter);
 app.use("/api/outfit", outfitRouter);
 app.use("/api/history", historyRouter);
+app.use("/api/share", shareRouter);
 
 // 404 + error handler (must be last)
 app.use(notFound);

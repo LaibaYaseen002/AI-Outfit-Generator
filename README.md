@@ -56,7 +56,7 @@ The goal is a **production-ready** application with clean architecture, secure a
 - **Cultural mode** — wedding, mehndi, eid, formal, traditional contexts.
 - **Outfit preview images** — AI-generated or static lookbook references for each suggestion.
 - **Favorites / Saved looks** — users can star outfits they want to keep.
-- **Shareable result links** — copy a link to send a generated outfit to a friend.
+- **Shareable result links** — generate a public, read-only link for any saved outfit (with OG previews for social platforms). Owners can revoke at any time.
 
 ---
 
@@ -159,6 +159,7 @@ npm run dev                # starts Next.js on http://localhost:3000
    - `001_recommendations.sql` — creates the `recommendations` table used by the History feature, with per-user RLS policies.
    - `002_outfit_image.sql` — adds `outfit_image_path`, `image_status`, `image_error`, `image_updated_at` columns used by the visual outfit preview feature.
    - `003_favorites.sql` — adds `is_favorite` column + composite index for the Favorites feature, plus an `update` RLS policy.
+   - `004_share_token.sql` — adds the nullable `share_token` column + unique partial index for the Shareable Links feature.
 4. Create a **private** storage bucket named `user-photos`.
 5. Enable email/password auth under **Authentication → Providers**.
 
@@ -369,6 +370,8 @@ Every successful `POST /api/outfit/generate` automatically writes a row to the `
 | `GET`    | `/api/history/:id`           | Fetch a single saved recommendation | ✅ |
 | `DELETE` | `/api/history/:id`           | Delete a saved recommendation | ✅ |
 | `PATCH`  | `/api/history/:id/favorite`  | Body: `{ "favorite": true \| false }`. Toggles the saved recommendation's favorite flag. Returns `{ id, is_favorite }`. | ✅ |
+| `POST`   | `/api/history/:id/share`     | Mint (or return existing) public share token. Idempotent — calling twice returns the same token. Response: `{ id, token }`. | ✅ |
+| `DELETE` | `/api/history/:id/share`     | Revoke the public share link. Response: `{ id, revoked: true }`. | ✅ |
 
 `GET /api/history` returns:
 
@@ -380,6 +383,31 @@ Every successful `POST /api/outfit/generate` automatically writes a row to the `
   "total": 42
 }
 ```
+
+### Public Share
+
+Public, read-only access to an outfit by its share token. **No auth.**
+
+| Method | Endpoint | Description | Auth |
+|--------|----------|-------------|------|
+| `GET` | `/api/share/:token` | Fetch a shared outfit by its token. | ❌ |
+
+The token (32 random bytes, base64url) is the bearer credential — anyone with the token can view. The response is intentionally lean: it strips `user_id`, the user's selfie path, free-text preferences, and other internal fields.
+
+```json
+{
+  "token": "…",
+  "outfit": { "top": "…", "bottom": "…", "footwear": "…", "accessories": ["…"] },
+  "colors": ["#…"],
+  "explanation": "…",
+  "occasion": "dinner",
+  "skinTone": "medium",
+  "imageUrl": "<signed url for the AI-rendered outfit, 1h TTL — null if no preview yet>",
+  "createdAt": "..."
+}
+```
+
+The FE renders this at `/share/<token>` with OpenGraph metadata so the link shows a rich preview when shared on social platforms. Only the AI-rendered mannequin image is exposed — never the user's original photo.
 
 ### Sample response — `POST /api/outfit/generate`
 
@@ -456,7 +484,6 @@ docs: update env example
 - 🎉 **Cultural & regional modes** (mehndi, eid, diwali, holiday parties, etc.).
 - 🖼 **AI-generated outfit preview images** (DALL·E / Stable Diffusion).
 - ⭐ **Favorites & saved lookbooks**.
-- 🔗 **Shareable result links** with OG previews.
 - 📱 **Mobile PWA** version with offline history.
 - 🛍 **Shopping links** — connect outfit items to e-commerce listings.
 - 👗 **Wardrobe mode** — upload your existing clothes and get outfits using only items you own.

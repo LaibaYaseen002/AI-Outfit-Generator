@@ -26,6 +26,7 @@ export interface HistoryItem {
   image_error: string | null;
   image_updated_at: string | null;
   is_favorite: boolean;
+  share_token: string | null;
 }
 
 export interface HistoryListResponse {
