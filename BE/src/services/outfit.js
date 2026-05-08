@@ -13,9 +13,17 @@ Return ONLY valid JSON matching this exact schema — no prose, no markdown:
     "footwear": "string",
     "accessories": ["string", "..."]
   },
+  "outfitItemRefs": {
+    "top": "wardrobe-item-id-or-null",
+    "bottom": "wardrobe-item-id-or-null",
+    "footwear": "wardrobe-item-id-or-null",
+    "accessories": ["wardrobe-item-id", "..."]
+  },
   "colors": ["#RRGGBB", "#RRGGBB", "#RRGGBB"],
   "explanation": "1-3 sentences on why this works for the user's skin tone, age, occasion, and weather"
 }
+
+When the user provides a wardrobe catalog, you MUST pick items only from that catalog and put each chosen item's id in outfitItemRefs. The visible "top"/"bottom"/etc. strings should describe the chosen item. When no catalog is provided, omit outfitItemRefs (or send all-null) — never invent ids.
 
 Rules:
 - "colors" must contain exactly 3 hex codes (with #) representing the dominant colors of the outfit.
@@ -85,6 +93,30 @@ function describeWeather(weather) {
   return parts.length ? parts.join("\n") : null;
 }
 
+function describeWardrobe(items) {
+  if (!Array.isArray(items) || items.length === 0) return null;
+  const byCategory = items.reduce((acc, it) => {
+    (acc[it.category] ||= []).push(it);
+    return acc;
+  }, {});
+  const order = ["top", "bottom", "footwear", "outerwear", "accessory"];
+  const lines = [];
+  for (const cat of order) {
+    const list = byCategory[cat];
+    if (!list?.length) continue;
+    lines.push(`${cat}s:`);
+    for (const it of list) {
+      const colorPart = it.colors?.length ? ` (${it.colors.join("/")})` : "";
+      const matPart = it.attributes?.material ? `, ${it.attributes.material}` : "";
+      const occPart = it.attributes?.occasions?.length
+        ? `, fits: ${it.attributes.occasions.join("/")}`
+        : "";
+      lines.push(`- id=${it.id} | ${it.name}${colorPart}${matPart}${occPart}`);
+    }
+  }
+  return lines.join("\n");
+}
+
 function buildUserMessage({
   gender,
   ageGroup,
@@ -92,7 +124,8 @@ function buildUserMessage({
   skinHex,
   occasion,
   weather,
-  preferences
+  preferences,
+  wardrobe
 }) {
   const lines = [];
   if (gender) lines.push(`Gender presentation: ${gender}`);
@@ -115,7 +148,29 @@ function buildUserMessage({
     lines.push(`Colors to avoid: ${preferences.colorsAvoid.join(", ")}`);
   if (preferences?.notes) lines.push(`Extra notes: ${preferences.notes}`);
 
+  const wardrobeBlock = describeWardrobe(wardrobe);
+  if (wardrobeBlock) {
+    lines.push("");
+    lines.push(
+      "WARDROBE-ONLY MODE: pick ONLY from the items below. Use the exact id strings in outfitItemRefs. If no suitable item exists for a slot (e.g. no footwear in the wardrobe), set that ref to null and describe what's still missing in the explanation."
+    );
+    lines.push(wardrobeBlock);
+  }
+
   return lines.join("\n");
+}
+
+function sanitizeItemRefs(refs, validIds) {
+  if (!refs || typeof refs !== "object") return null;
+  const valid = new Set(validIds);
+  const pickOne = (v) => (typeof v === "string" && valid.has(v) ? v : null);
+  const accessoriesIn = Array.isArray(refs.accessories) ? refs.accessories : [];
+  return {
+    top: pickOne(refs.top),
+    bottom: pickOne(refs.bottom),
+    footwear: pickOne(refs.footwear),
+    accessories: accessoriesIn.map(pickOne).filter(Boolean).slice(0, 4)
+  };
 }
 
 export async function generateOutfit(input) {
@@ -126,7 +181,8 @@ export async function generateOutfit(input) {
     skinHex,
     occasion,
     weather,
-    preferences
+    preferences,
+    wardrobe
   } = input;
 
   const completion = await openai.chat.completions.create({
@@ -144,7 +200,8 @@ export async function generateOutfit(input) {
           skinHex,
           occasion,
           weather,
-          preferences
+          preferences,
+          wardrobe
         })
       }
     ]
@@ -174,8 +231,13 @@ export async function generateOutfit(input) {
     throw new Error("AI response colors must be a non-empty array");
   }
 
+  const itemRefs = wardrobe?.length
+    ? sanitizeItemRefs(parsed.outfitItemRefs, wardrobe.map((it) => it.id))
+    : null;
+
   return {
     outfit: parsed.outfit,
+    outfitItemRefs: itemRefs,
     colors: parsed.colors,
     explanation: parsed.explanation,
     gender: gender ?? null,

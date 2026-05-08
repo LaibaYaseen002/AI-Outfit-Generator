@@ -7,6 +7,7 @@ import ProtectedRoute from "@/components/ProtectedRoute";
 import WeatherCard from "@/components/WeatherCard";
 import { getFlowState, setFlowState } from "@/lib/flow";
 import { generateOutfit } from "@/lib/outfit";
+import { listWardrobeItems } from "@/lib/wardrobe";
 import type { WeatherSnapshot } from "@/lib/weather";
 
 const OCCASIONS = [
@@ -34,6 +35,8 @@ export default function OccasionPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [weather, setWeather] = useState<WeatherSnapshot | null>(null);
+  const [wardrobeOnly, setWardrobeOnly] = useState(false);
+  const [wardrobeCount, setWardrobeCount] = useState<number | null>(null);
 
   useEffect(() => {
     const state = getFlowState();
@@ -43,6 +46,9 @@ export default function OccasionPage() {
       setHasUpload(true);
     }
     if (state.weather) setWeather(state.weather);
+    listWardrobeItems()
+      .then((res) => setWardrobeCount(res.items.length))
+      .catch(() => setWardrobeCount(0));
   }, []);
 
   function handleWeatherChange(next: WeatherSnapshot | null) {
@@ -86,6 +92,7 @@ export default function OccasionPage() {
         gender: state.appearance?.gender,
         ageGroup: state.appearance?.ageGroup,
         weather: state.weather ?? undefined,
+        wardrobeOnly: wardrobeOnly || undefined,
         preferences
       });
       setFlowState({ ...getFlowState(), ...{} });
@@ -168,6 +175,43 @@ export default function OccasionPage() {
           </section>
 
           <WeatherCard value={weather} onChange={handleWeatherChange} />
+
+          <section className="card flex items-center justify-between gap-4">
+            <div>
+              <h2 className="text-lg font-semibold text-neutral-800">
+                Use my wardrobe only
+              </h2>
+              <p className="mt-0.5 text-sm text-neutral-600">
+                {wardrobeCount === null
+                  ? "Loading your wardrobe…"
+                  : wardrobeCount === 0
+                  ? "Add items to your wardrobe to enable this."
+                  : `Pick from your ${wardrobeCount} saved item${
+                      wardrobeCount === 1 ? "" : "s"
+                    } only.`}
+              </p>
+            </div>
+            <div className="flex flex-col items-end gap-2">
+              <label className="inline-flex cursor-pointer items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={wardrobeOnly}
+                  disabled={!wardrobeCount}
+                  onChange={(e) => setWardrobeOnly(e.target.checked)}
+                  className="h-5 w-5 accent-brand-700"
+                />
+                <span className="text-sm font-semibold text-brand-800">
+                  {wardrobeOnly ? "On" : "Off"}
+                </span>
+              </label>
+              <Link
+                href="/wardrobe"
+                className="text-xs font-semibold text-brand-700 hover:underline"
+              >
+                Manage wardrobe →
+              </Link>
+            </div>
+          </section>
 
           <section className="card space-y-5">
             <h2 className="text-lg font-semibold text-neutral-800">
