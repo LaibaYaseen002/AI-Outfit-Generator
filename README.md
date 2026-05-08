@@ -57,6 +57,7 @@ The goal is a **production-ready** application with clean architecture, secure a
 - **Outfit preview images** — AI-generated or static lookbook references for each suggestion.
 - **Favorites / Saved looks** — users can star outfits they want to keep.
 - **Shareable result links** — generate a public, read-only link for any saved outfit (with OG previews for social platforms). Owners can revoke at any time.
+- **Wardrobe mode** — upload your own clothing items; turn on wardrobe-only mode to get outfits picked exclusively from what you own. AI auto-classifies category, name, colors, and attributes from each photo.
 
 ---
 
@@ -160,6 +161,7 @@ npm run dev                # starts Next.js on http://localhost:3000
    - `002_outfit_image.sql` — adds `outfit_image_path`, `image_status`, `image_error`, `image_updated_at` columns used by the visual outfit preview feature.
    - `003_favorites.sql` — adds `is_favorite` column + composite index for the Favorites feature, plus an `update` RLS policy.
    - `004_share_token.sql` — adds the nullable `share_token` column + unique partial index for the Shareable Links feature.
+   - `005_wardrobe.sql` — creates the `wardrobe_items` table + RLS policies for the Wardrobe Mode feature.
 4. Create a **private** storage bucket named `user-photos`.
 5. Enable email/password auth under **Authentication → Providers**.
 
@@ -337,7 +339,7 @@ When the FE forwards a `weather` object into `POST /api/outfit/generate`, the ou
 
 | Method | Endpoint | Description | Auth |
 |--------|----------|-------------|------|
-| `POST` | `/api/outfit/generate` | Generate AI outfit based on skin tone, occasion, preferences, (optional) detected `gender` + `ageGroup`, and (optional) `weather`. Returns the saved recommendation `id`. | ✅ |
+| `POST` | `/api/outfit/generate` | Generate AI outfit based on skin tone, occasion, preferences, (optional) detected `gender` + `ageGroup`, (optional) `weather`, and (optional) `wardrobeOnly: true` to constrain to the user's saved wardrobe items. Returns the saved recommendation `id` plus `outfitItemRefs` when in wardrobe mode. | ✅ |
 | `POST` | `/api/outfit/:id/preview` | Kick off async image generation for the saved recommendation. Idempotent — returns current state if a job is in flight or already done. Responds `202` when a new job is started. | ✅ |
 | `GET`  | `/api/outfit/:id/preview` | Poll the image-generation status. | ✅ |
 
@@ -408,6 +410,42 @@ The token (32 random bytes, base64url) is the bearer credential — anyone with 
 ```
 
 The FE renders this at `/share/<token>` with OpenGraph metadata so the link shows a rich preview when shared on social platforms. Only the AI-rendered mannequin image is exposed — never the user's original photo.
+
+### Wardrobe
+
+Per-user catalog of clothing items the user already owns. When `POST /api/outfit/generate` is called with `wardrobeOnly: true`, the LLM is constrained to pick items only from this catalog and returns an `outfitItemRefs` map of slot → wardrobe-item id.
+
+| Method | Endpoint | Description | Auth |
+|--------|----------|-------------|------|
+| `POST`   | `/api/wardrobe/upload`        | Multipart upload (`image` field). Stores under `<userId>/wardrobe/<uuid>.<ext>` and runs an OpenAI vision auto-classify in the same call. Returns `{ path, imageUrl, suggestion }`. | ✅ |
+| `POST`   | `/api/wardrobe/items`         | Finalize an item record. Body: `{ path, category, name, colors?, attributes? }`. | ✅ |
+| `GET`    | `/api/wardrobe/items`         | List the user's items. Optional `?category=top\|bottom\|footwear\|accessory\|outerwear`. Each item is returned with a fresh `imageUrl` (1h TTL signed). | ✅ |
+| `GET`    | `/api/wardrobe/items/:id`     | Fetch a single item. | ✅ |
+| `PATCH`  | `/api/wardrobe/items/:id`     | Partial update — any of `{ category, name, colors, attributes }`. | ✅ |
+| `DELETE` | `/api/wardrobe/items/:id`     | Remove the item record AND its storage object. | ✅ |
+
+Item shape:
+
+```json
+{
+  "id": "…",
+  "user_id": "…",
+  "image_path": "<userId>/wardrobe/<uuid>.jpg",
+  "imageUrl": "<signed url, 1h TTL>",
+  "category": "top",
+  "name": "navy linen blazer",
+  "colors": ["#1f3a8a"],
+  "attributes": {
+    "material": "linen",
+    "season": "spring-fall",
+    "occasions": ["office", "dinner"],
+    "notes": null
+  },
+  "created_at": "..."
+}
+```
+
+The auto-classifier is implemented in `BE/src/services/wardrobeClassify.js` — same OpenAI-compatible vision pipeline as appearance detection. Confidence < 0.7 still pre-fills the form; the user can edit any field before saving. Wardrobe-mode item references are persisted on the recommendation row inside `preferences.outfitItemRefs` (no schema migration on `recommendations`).
 
 ### Sample response — `POST /api/outfit/generate`
 
@@ -486,7 +524,6 @@ docs: update env example
 - ⭐ **Favorites & saved lookbooks**.
 - 📱 **Mobile PWA** version with offline history.
 - 🛍 **Shopping links** — connect outfit items to e-commerce listings.
-- 👗 **Wardrobe mode** — upload your existing clothes and get outfits using only items you own.
 - 🌐 **Multi-language UI** (English + Urdu first).
 
 ---

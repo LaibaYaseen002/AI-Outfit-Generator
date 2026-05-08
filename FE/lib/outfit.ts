@@ -10,9 +10,17 @@ export interface Outfit {
   accessories: string[];
 }
 
+export interface OutfitItemRefs {
+  top: string | null;
+  bottom: string | null;
+  footwear: string | null;
+  accessories: string[];
+}
+
 export interface OutfitResponse {
   id: string | null;
   outfit: Outfit;
+  outfitItemRefs: OutfitItemRefs | null;
   colors: string[];
   explanation: string;
   skinTone: SkinTone;
@@ -32,6 +40,7 @@ export interface GenerateOutfitInput {
   gender?: Gender;
   ageGroup?: AgeGroup;
   weather?: WeatherSnapshot;
+  wardrobeOnly?: boolean;
   preferences?: {
     style?: string;
     colorsLike?: string[];

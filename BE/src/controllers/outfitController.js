@@ -1,5 +1,6 @@
 import { generateOutfit } from "../services/outfit.js";
 import { saveRecommendation } from "./historyController.js";
+import { getWardrobeCatalog } from "./wardrobeController.js";
 
 const ALLOWED_TONES = ["light", "medium", "dark"];
 const ALLOWED_GENDERS = ["male", "female"];
@@ -93,8 +94,10 @@ export async function postGenerateOutfit(req, res, next) {
       imagePath,
       gender: genderRaw,
       ageGroup: ageGroupRaw,
-      weather: weatherRaw
+      weather: weatherRaw,
+      wardrobeOnly: wardrobeOnlyRaw
     } = req.body ?? {};
+    const wardrobeOnly = wardrobeOnlyRaw === true;
 
     if (!skinTone || !ALLOWED_TONES.includes(skinTone)) {
       return res.status(400).json({
@@ -159,6 +162,21 @@ export async function postGenerateOutfit(req, res, next) {
       }
     }
 
+    let wardrobe = null;
+    if (wardrobeOnly) {
+      wardrobe = await getWardrobeCatalog(req.user.id);
+      if (!wardrobe.length) {
+        return res.status(400).json({
+          error: {
+            message:
+              "Your wardrobe is empty — add items first or turn off wardrobe-only mode.",
+            status: 400,
+            code: "EMPTY_WARDROBE"
+          }
+        });
+      }
+    }
+
     const result = await generateOutfit({
       gender,
       ageGroup,
@@ -166,17 +184,20 @@ export async function postGenerateOutfit(req, res, next) {
       skinHex,
       occasion,
       weather,
-      preferences: preferences ?? {}
+      preferences: preferences ?? {},
+      wardrobe
     });
 
-    // Persist appearance + weather attributes alongside other prefs so we
-    // don't need a new SQL column. The FE reads these back from the
+    // Persist appearance + weather + wardrobe refs alongside other prefs so
+    // we don't need new SQL columns. The FE reads these back from the
     // recommendation row.
     const persistedPreferences = {
       ...(preferences ?? {}),
       ...(gender ? { gender } : {}),
       ...(ageGroup ? { ageGroup } : {}),
-      ...(weather ? { weather } : {})
+      ...(weather ? { weather } : {}),
+      ...(wardrobeOnly ? { wardrobeOnly: true } : {}),
+      ...(result.outfitItemRefs ? { outfitItemRefs: result.outfitItemRefs } : {})
     };
 
     let savedId = null;

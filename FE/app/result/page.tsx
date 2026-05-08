@@ -8,6 +8,7 @@ import { clearFlowState, getFlowState } from "@/lib/flow";
 import OutfitPreview from "@/components/OutfitPreview";
 import FavoriteButton from "@/components/FavoriteButton";
 import ShareButton from "@/components/ShareButton";
+import WardrobeOutfitCard from "@/components/WardrobeOutfitCard";
 import { weatherEmoji, weatherSummary } from "@/lib/weather";
 
 const TONE_LABELS: Record<string, string> = {
@@ -114,6 +115,10 @@ export default function ResultPage() {
           </div>
 
           {result.id && <OutfitPreview recommendationId={result.id} />}
+
+          {result.outfitItemRefs && (
+            <WardrobeOutfitCard refs={result.outfitItemRefs} />
+          )}
 
           <div className="card">
             <div className="flex flex-wrap items-center justify-between gap-4">

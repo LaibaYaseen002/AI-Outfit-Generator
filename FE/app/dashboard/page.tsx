@@ -55,9 +55,12 @@ export default function DashboardPage() {
             <Link href="/history" className="btn btn-md btn-secondary">
               View History
             </Link>
+            <Link href="/wardrobe" className="btn btn-md btn-secondary">
+              My Wardrobe
+            </Link>
             <button
               onClick={handleLogout}
-              className="btn btn-md btn-ghost"
+              className="btn btn-md btn-ghost sm:col-span-2"
             >
               Log out
             </button>
