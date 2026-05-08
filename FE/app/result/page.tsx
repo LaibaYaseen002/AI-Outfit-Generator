@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import ProtectedRoute from "@/components/ProtectedRoute";
-import { OutfitResponse } from "@/lib/outfit";
+import { CULTURES, OutfitResponse } from "@/lib/outfit";
 import { clearFlowState, getFlowState } from "@/lib/flow";
 import OutfitPreview from "@/components/OutfitPreview";
 import FavoriteButton from "@/components/FavoriteButton";
@@ -140,6 +140,18 @@ export default function ResultPage() {
                   {(result.gender || result.ageGroup) && (
                     <p className="mt-0.5 text-xs capitalize text-neutral-500">
                       {[result.ageGroup, result.gender].filter(Boolean).join(" · ")}
+                    </p>
+                  )}
+                  {result.culture && (
+                    <p className="mt-0.5 inline-flex items-center gap-1 text-xs text-neutral-500">
+                      <span aria-hidden>
+                        {CULTURES.find((c) => c.id === result.culture)?.emoji ?? "🌐"}
+                      </span>
+                      <span className="capitalize">
+                        {CULTURES.find((c) => c.id === result.culture)?.label ??
+                          result.culture}{" "}
+                        styling
+                      </span>
                     </p>
                   )}
                   {result.weather && (

@@ -5,6 +5,7 @@ import { getWardrobeCatalog } from "./wardrobeController.js";
 const ALLOWED_TONES = ["light", "medium", "dark"];
 const ALLOWED_GENDERS = ["male", "female"];
 const ALLOWED_AGE_GROUPS = ["child", "teenager", "adult"];
+const ALLOWED_CULTURES = ["pakistani", "indian", "arab", "western"];
 const WEATHER_BUCKETS = ["freezing", "cold", "cool", "mild", "warm", "hot"];
 const WEATHER_CONDITIONS = [
   "clear",
@@ -94,6 +95,7 @@ export async function postGenerateOutfit(req, res, next) {
       imagePath,
       gender: genderRaw,
       ageGroup: ageGroupRaw,
+      culture: cultureRaw,
       weather: weatherRaw,
       wardrobeOnly: wardrobeOnlyRaw
     } = req.body ?? {};
@@ -140,6 +142,22 @@ export async function postGenerateOutfit(req, res, next) {
     const gender = genderResult;
     const ageGroup = ageGroupResult;
 
+    const cultureResult = validateOptionalEnum(
+      cultureRaw,
+      ALLOWED_CULTURES,
+      "culture"
+    );
+    if (
+      cultureResult &&
+      typeof cultureResult === "object" &&
+      cultureResult.error
+    ) {
+      return res
+        .status(400)
+        .json({ error: { message: cultureResult.error, status: 400 } });
+    }
+    const culture = cultureResult;
+
     const weatherResult = sanitizeWeather(weatherRaw);
     if (weatherResult && weatherResult.error) {
       return res
@@ -183,18 +201,20 @@ export async function postGenerateOutfit(req, res, next) {
       skinTone,
       skinHex,
       occasion,
+      culture,
       weather,
       preferences: preferences ?? {},
       wardrobe
     });
 
-    // Persist appearance + weather + wardrobe refs alongside other prefs so
-    // we don't need new SQL columns. The FE reads these back from the
-    // recommendation row.
+    // Persist appearance + culture + weather + wardrobe refs alongside other
+    // prefs so we don't need new SQL columns. The FE reads these back from
+    // the recommendation row.
     const persistedPreferences = {
       ...(preferences ?? {}),
       ...(gender ? { gender } : {}),
       ...(ageGroup ? { ageGroup } : {}),
+      ...(culture ? { culture } : {}),
       ...(weather ? { weather } : {}),
       ...(wardrobeOnly ? { wardrobeOnly: true } : {}),
       ...(result.outfitItemRefs ? { outfitItemRefs: result.outfitItemRefs } : {})

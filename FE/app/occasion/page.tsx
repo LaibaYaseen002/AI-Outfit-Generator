@@ -6,23 +6,48 @@ import { useRouter } from "next/navigation";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import WeatherCard from "@/components/WeatherCard";
 import { getFlowState, setFlowState } from "@/lib/flow";
-import { generateOutfit } from "@/lib/outfit";
+import { CULTURES, type Culture, generateOutfit } from "@/lib/outfit";
 import { listWardrobeItems } from "@/lib/wardrobe";
 import type { WeatherSnapshot } from "@/lib/weather";
 
-const OCCASIONS = [
+interface OccasionEntry {
+  id: string;
+  label: string;
+  emoji: string;
+  culture?: Culture;
+}
+
+// "Everyday" presets — shown for any culture.
+const COMMON_OCCASIONS: OccasionEntry[] = [
   { id: "casual", label: "Casual", emoji: "🧢" },
   { id: "office", label: "Office / Work", emoji: "💼" },
   { id: "dinner", label: "Dinner Date", emoji: "🍷" },
-  { id: "wedding", label: "Wedding", emoji: "💍" },
-  { id: "mehndi", label: "Mehndi", emoji: "🌿" },
   { id: "party", label: "Party", emoji: "🎉" },
   { id: "gym", label: "Gym", emoji: "🏋️" },
   { id: "beach", label: "Beach", emoji: "🏖️" },
-  { id: "formal", label: "Formal Event", emoji: "🎩" }
+  { id: "formal", label: "Formal Event", emoji: "🎩" },
+  { id: "wedding", label: "Wedding", emoji: "💍" }
 ];
 
-const STYLES = ["minimal", "classic", "bold", "streetwear", "boho"];
+// Culture-specific presets, surfaced when matching culture is selected.
+const CULTURE_OCCASIONS: OccasionEntry[] = [
+  { id: "mehndi", label: "Mehndi", emoji: "🌿", culture: "pakistani" },
+  { id: "baraat", label: "Baraat", emoji: "🐎", culture: "pakistani" },
+  { id: "walima", label: "Walima", emoji: "🌹", culture: "pakistani" },
+  { id: "nikah", label: "Nikah", emoji: "💐", culture: "pakistani" },
+  { id: "eid", label: "Eid", emoji: "🌙", culture: "pakistani" },
+  { id: "mehndi", label: "Mehndi", emoji: "🌿", culture: "indian" },
+  { id: "diwali", label: "Diwali", emoji: "🪔", culture: "indian" },
+  { id: "sangeet", label: "Sangeet", emoji: "🎶", culture: "indian" },
+  { id: "haldi", label: "Haldi", emoji: "🌼", culture: "indian" },
+  { id: "eid", label: "Eid", emoji: "🌙", culture: "arab" },
+  { id: "iftar", label: "Iftar", emoji: "🌙", culture: "arab" },
+  { id: "thanksgiving", label: "Thanksgiving", emoji: "🦃", culture: "western" },
+  { id: "christmas", label: "Christmas", emoji: "🎄", culture: "western" },
+  { id: "new-year", label: "New Year", emoji: "🎆", culture: "western" }
+];
+
+const STYLES = ["minimal", "classic", "bold", "streetwear", "boho", "ethnic"];
 
 export default function OccasionPage() {
   const router = useRouter();
@@ -35,6 +60,7 @@ export default function OccasionPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [weather, setWeather] = useState<WeatherSnapshot | null>(null);
+  const [culture, setCulture] = useState<Culture | null>(null);
   const [wardrobeOnly, setWardrobeOnly] = useState(false);
   const [wardrobeCount, setWardrobeCount] = useState<number | null>(null);
 
@@ -46,10 +72,20 @@ export default function OccasionPage() {
       setHasUpload(true);
     }
     if (state.weather) setWeather(state.weather);
+    if (state.culture) setCulture(state.culture);
     listWardrobeItems()
       .then((res) => setWardrobeCount(res.items.length))
       .catch(() => setWardrobeCount(0));
   }, []);
+
+  function handleCultureChange(next: Culture | null) {
+    setCulture(next);
+    setFlowState({ culture: next ?? undefined });
+  }
+
+  const cultureOccasions = culture
+    ? CULTURE_OCCASIONS.filter((o) => o.culture === culture)
+    : [];
 
   function handleWeatherChange(next: WeatherSnapshot | null) {
     setWeather(next);
@@ -91,6 +127,7 @@ export default function OccasionPage() {
         imagePath: state.upload?.path,
         gender: state.appearance?.gender,
         ageGroup: state.appearance?.ageGroup,
+        culture: culture ?? undefined,
         weather: state.weather ?? undefined,
         wardrobeOnly: wardrobeOnly || undefined,
         preferences
@@ -147,14 +184,43 @@ export default function OccasionPage() {
 
           <section>
             <h2 className="mb-3 text-lg font-semibold text-neutral-800">
+              Cultural context{" "}
+              <span className="text-sm font-normal text-neutral-500">
+                (optional)
+              </span>
+            </h2>
+            <div className="flex flex-wrap gap-2">
+              {CULTURES.map((c) => {
+                const selected = culture === c.id;
+                return (
+                  <button
+                    key={c.id}
+                    onClick={() =>
+                      handleCultureChange(selected ? null : c.id)
+                    }
+                    className={`btn btn-sm ${
+                      selected ? "btn-primary" : "btn-secondary"
+                    }`}
+                    aria-pressed={selected}
+                  >
+                    <span aria-hidden>{c.emoji}</span>
+                    {c.label}
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+
+          <section>
+            <h2 className="mb-3 text-lg font-semibold text-neutral-800">
               Pick an occasion
             </h2>
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-              {OCCASIONS.map((o) => {
+              {[...COMMON_OCCASIONS, ...cultureOccasions].map((o) => {
                 const selected = occasion === o.id;
                 return (
                   <button
-                    key={o.id}
+                    key={`${o.culture ?? "common"}-${o.id}`}
                     onClick={() => setOccasion(o.id)}
                     className={`group flex flex-col items-start gap-2 rounded-2xl border-2 p-4 text-left transition-all duration-200 ${
                       selected
@@ -172,6 +238,13 @@ export default function OccasionPage() {
                 );
               })}
             </div>
+            {culture && cultureOccasions.length > 0 && (
+              <p className="mt-3 text-xs text-neutral-500">
+                Last {cultureOccasions.length} option
+                {cultureOccasions.length === 1 ? " is" : "s are"} curated for{" "}
+                {CULTURES.find((c) => c.id === culture)?.label}.
+              </p>
+            )}
           </section>
 
           <WeatherCard value={weather} onChange={handleWeatherChange} />

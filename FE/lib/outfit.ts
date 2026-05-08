@@ -3,6 +3,15 @@ import type { SkinTone } from "./skinTone";
 import type { AgeGroup, Gender } from "./appearance";
 import type { WeatherSnapshot } from "./weather";
 
+export type Culture = "pakistani" | "indian" | "arab" | "western";
+
+export const CULTURES: { id: Culture; label: string; emoji: string }[] = [
+  { id: "western", label: "Western", emoji: "👔" },
+  { id: "pakistani", label: "Pakistani", emoji: "🇵🇰" },
+  { id: "indian", label: "Indian", emoji: "🇮🇳" },
+  { id: "arab", label: "Arab", emoji: "🇸🇦" }
+];
+
 export interface Outfit {
   top: string;
   bottom: string;
@@ -27,6 +36,7 @@ export interface OutfitResponse {
   occasion: string;
   gender: Gender | null;
   ageGroup: AgeGroup | null;
+  culture: Culture | null;
   weather: WeatherSnapshot | null;
   is_favorite: boolean;
   model: string;
@@ -39,6 +49,7 @@ export interface GenerateOutfitInput {
   imagePath?: string;
   gender?: Gender;
   ageGroup?: AgeGroup;
+  culture?: Culture;
   weather?: WeatherSnapshot;
   wardrobeOnly?: boolean;
   preferences?: {

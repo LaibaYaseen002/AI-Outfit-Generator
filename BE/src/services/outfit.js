@@ -52,7 +52,15 @@ Weather guidance (apply ONLY when weather is provided):
 - fog               → layer for damp cool air; muted colors read better.
 - high wind (≥ 30 km/h) → avoid loose flowing pieces; favor structured silhouettes.
 
-When weather and occasion clash (e.g., wedding in 5°C rain), keep occasion-appropriate styling but adapt: add a tailored coat, switch suede for leather, swap open footwear for closed, etc. Always reflect the adaptation in the explanation.`;
+When weather and occasion clash (e.g., wedding in 5°C rain), keep occasion-appropriate styling but adapt: add a tailored coat, switch suede for leather, swap open footwear for closed, etc. Always reflect the adaptation in the explanation.
+
+Cultural guidance (apply ONLY when culture is provided):
+- pakistani → ethnic vocabulary: shalwar kameez, kurta, sherwani, lehenga, saree, gharara, dupatta. For mehndi: yellows/greens/oranges, mirror/zari work, fresh florals, embroidered dupatta. For walima/baraat: rich jewel tones (deep red, royal blue, emerald), heavily embroidered formal pieces, statement jewelry, achkan/sherwani for men. For eid: pastel-or-jewel-tone shalwar kameez, polished khussa/peshawari, modest jewelry. For nikah: ivory/champagne/dusty rose for the bride, charcoal/navy sherwani or three-piece suit for the groom.
+- indian → similar ethnic vocabulary: kurta-pajama, saree, lehenga choli, sherwani, anarkali. For diwali: silk fabrics, gold accents, jewel tones (maroon, emerald, sapphire), traditional motifs. For wedding ceremonies: heavy embroidery, dupatta drape, elaborate jewelry. For festive day-wear: lighter cotton/silk blends with prints.
+- arab → for traditional/formal: thobe/kandura/abaya silhouettes; muted whites, beiges, dark navy; understated luxury accessories; modest cuts; gold or silver fine jewelry.
+- western → contemporary global silhouettes: tailored suits, cocktail dresses, smart-casual layering. For christmas/holiday parties: velvet, sequins, deep reds/greens; for new year: metallics; for thanksgiving family dinners: warm earth tones with smart-casual layers.
+
+Cultural styling overrides generic occasion styling when both are present (e.g., culture=pakistani + occasion=wedding → recommend shalwar kameez or sherwani, NOT a Western suit). Reflect the cultural cue in the explanation. If culture is omitted, default to contemporary Western styling.`;
 
 function describeWeather(weather) {
   if (!weather) return null;
@@ -123,6 +131,7 @@ function buildUserMessage({
   skinTone,
   skinHex,
   occasion,
+  culture,
   weather,
   preferences,
   wardrobe
@@ -134,6 +143,7 @@ function buildUserMessage({
     `Skin tone: ${skinTone}${skinHex ? ` (approx ${skinHex})` : ""}`
   );
   lines.push(`Occasion: ${occasion}`);
+  if (culture) lines.push(`Cultural context: ${culture}`);
 
   const weatherBlock = describeWeather(weather);
   if (weatherBlock) {
@@ -180,6 +190,7 @@ export async function generateOutfit(input) {
     skinTone,
     skinHex,
     occasion,
+    culture,
     weather,
     preferences,
     wardrobe
@@ -199,6 +210,7 @@ export async function generateOutfit(input) {
           skinTone,
           skinHex,
           occasion,
+          culture,
           weather,
           preferences,
           wardrobe
@@ -243,6 +255,7 @@ export async function generateOutfit(input) {
     gender: gender ?? null,
     ageGroup: ageGroup ?? null,
     weather: weather ?? null,
+    culture: culture ?? null,
     skinTone,
     occasion,
     model: OPENAI_MODEL
