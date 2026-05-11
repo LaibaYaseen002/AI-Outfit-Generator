@@ -84,9 +84,11 @@ export async function detectSkinTone(imageBuffer) {
   const luminance =
     (0.2126 * avgR + 0.7152 * avgG + 0.0722 * avgB) / 255;
 
+  // Dusky / wheatish tones (luminance ~0.30–0.55) should read as "medium",
+  // not "dark". The old <0.4 cutoff was over-aggressive for South Asian skin.
   let tone;
-  if (luminance < 0.4) tone = "dark";
-  else if (luminance < 0.65) tone = "medium";
+  if (luminance < 0.30) tone = "dark";
+  else if (luminance < 0.55) tone = "medium";
   else tone = "light";
 
   const toHex = (n) => Math.round(n).toString(16).padStart(2, "0");

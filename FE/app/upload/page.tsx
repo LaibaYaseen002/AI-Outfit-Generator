@@ -8,7 +8,7 @@ import UploadDropzone from "@/components/UploadDropzone";
 import SkinToneCard from "@/components/SkinToneCard";
 import AppearanceCard from "@/components/AppearanceCard";
 import { uploadImage, UploadResult } from "@/lib/upload";
-import { detectSkinTone, SkinToneResult } from "@/lib/skinTone";
+import { detectSkinTone, SkinTone, SkinToneResult } from "@/lib/skinTone";
 import {
   analyzeAppearance,
   AppearanceResult,
@@ -29,6 +29,7 @@ export default function UploadPage() {
 
   const [analyzing, setAnalyzing] = useState(false);
   const [skinTone, setSkinTone] = useState<SkinToneResult | null>(null);
+  const [skinToneOverridden, setSkinToneOverridden] = useState(false);
   const [skinToneError, setSkinToneError] = useState<string | null>(null);
 
   const [appearance, setAppearance] = useState<AppearanceResult | null>(null);
@@ -57,6 +58,7 @@ export default function UploadPage() {
     setProgress(0);
     setResult(null);
     setSkinTone(null);
+    setSkinToneOverridden(false);
     setSkinToneError(null);
     setAppearance(null);
     setAppearanceOverridden(false);
@@ -125,12 +127,21 @@ export default function UploadPage() {
     setProgress(0);
     setError(null);
     setSkinTone(null);
+    setSkinToneOverridden(false);
     setSkinToneError(null);
     setAppearance(null);
     setAppearanceOverridden(false);
     setAppearanceError(null);
     setNoFace(false);
     clearFlowState();
+  }
+
+  function handleSkinToneChange(next: SkinTone) {
+    if (!skinTone) return;
+    const updated: SkinToneResult = { ...skinTone, tone: next };
+    setSkinTone(updated);
+    setSkinToneOverridden(true);
+    setFlowState({ skinTone: updated });
   }
 
   function handleAppearanceChange(next: { gender: Gender; ageGroup: AgeGroup }) {
@@ -290,7 +301,13 @@ export default function UploadPage() {
             </div>
           )}
 
-          {skinTone && <SkinToneCard result={skinTone} />}
+          {skinTone && (
+            <SkinToneCard
+              result={skinTone}
+              overridden={skinToneOverridden}
+              onChange={handleSkinToneChange}
+            />
+          )}
 
           {appearance && (
             <AppearanceCard
