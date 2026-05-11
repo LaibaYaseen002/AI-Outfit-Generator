@@ -5,6 +5,13 @@ import { getWardrobeCatalog } from "./wardrobeController.js";
 const ALLOWED_TONES = ["light", "medium", "dark"];
 const ALLOWED_GENDERS = ["male", "female"];
 const ALLOWED_AGE_GROUPS = ["child", "teenager", "adult"];
+const ALLOWED_REGIONS = [
+  "pakistani",
+  "indian",
+  "bangladeshi",
+  "arab",
+  "western"
+];
 const WEATHER_BUCKETS = ["freezing", "cold", "cool", "mild", "warm", "hot"];
 const WEATHER_CONDITIONS = [
   "clear",
@@ -94,6 +101,7 @@ export async function postGenerateOutfit(req, res, next) {
       imagePath,
       gender: genderRaw,
       ageGroup: ageGroupRaw,
+      region: regionRaw,
       weather: weatherRaw,
       wardrobeOnly: wardrobeOnlyRaw
     } = req.body ?? {};
@@ -140,6 +148,18 @@ export async function postGenerateOutfit(req, res, next) {
     const gender = genderResult;
     const ageGroup = ageGroupResult;
 
+    const regionResult = validateOptionalEnum(
+      regionRaw,
+      ALLOWED_REGIONS,
+      "region"
+    );
+    if (regionResult && typeof regionResult === "object" && regionResult.error) {
+      return res
+        .status(400)
+        .json({ error: { message: regionResult.error, status: 400 } });
+    }
+    const region = regionResult;
+
     const weatherResult = sanitizeWeather(weatherRaw);
     if (weatherResult && weatherResult.error) {
       return res
@@ -183,6 +203,7 @@ export async function postGenerateOutfit(req, res, next) {
       skinTone,
       skinHex,
       occasion,
+      region,
       weather,
       preferences: preferences ?? {},
       wardrobe
@@ -195,6 +216,7 @@ export async function postGenerateOutfit(req, res, next) {
       ...(preferences ?? {}),
       ...(gender ? { gender } : {}),
       ...(ageGroup ? { ageGroup } : {}),
+      ...(region ? { region } : {}),
       ...(weather ? { weather } : {}),
       ...(wardrobeOnly ? { wardrobeOnly: true } : {}),
       ...(result.outfitItemRefs ? { outfitItemRefs: result.outfitItemRefs } : {})

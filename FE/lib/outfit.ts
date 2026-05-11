@@ -3,6 +3,13 @@ import type { SkinTone } from "./skinTone";
 import type { AgeGroup, Gender } from "./appearance";
 import type { WeatherSnapshot } from "./weather";
 
+export type Region =
+  | "pakistani"
+  | "indian"
+  | "bangladeshi"
+  | "arab"
+  | "western";
+
 export interface Outfit {
   top: string;
   bottom: string;
@@ -28,6 +35,7 @@ export interface OutfitResponse {
   gender: Gender | null;
   ageGroup: AgeGroup | null;
   weather: WeatherSnapshot | null;
+  region: Region | null;
   is_favorite: boolean;
   model: string;
 }
@@ -39,6 +47,7 @@ export interface GenerateOutfitInput {
   imagePath?: string;
   gender?: Gender;
   ageGroup?: AgeGroup;
+  region?: Region;
   weather?: WeatherSnapshot;
   wardrobeOnly?: boolean;
   preferences?: {

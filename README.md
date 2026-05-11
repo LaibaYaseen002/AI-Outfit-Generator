@@ -53,7 +53,7 @@ The goal is a **production-ready** application with clean architecture, secure a
 ### Advanced Features (Phase 2)
 
 - **Weather-based suggestions** — adapt outfit to the user's current city weather.
-- **Cultural mode** — wedding, mehndi, eid, formal, traditional contexts.
+- **Cultural occasion modes** — Eid, Mehndi, Walima, Diwali, Holi, Wedding picker entries plus a Region selector (Pakistani / Indian / Bangladeshi / Arab / Western). The selected region drives culturally-correct vocabulary in the AI prompt — sherwani vs. tuxedo, lehenga vs. gown, khussa vs. loafers, thobe / abaya for Arab, etc. Region is auto-shown only when a cultural occasion is picked and is persisted on the recommendation row inside `preferences.region` (no schema change).
 - **Outfit preview images** — AI-generated or static lookbook references for each suggestion.
 - **Favorites / Saved looks** — users can star outfits they want to keep.
 - **Shareable result links** — generate a public, read-only link for any saved outfit (with OG previews for social platforms). Owners can revoke at any time.
@@ -343,7 +343,7 @@ When the FE forwards a `weather` object into `POST /api/outfit/generate`, the ou
 
 | Method | Endpoint | Description | Auth |
 |--------|----------|-------------|------|
-| `POST` | `/api/outfit/generate` | Generate AI outfit based on skin tone, occasion, preferences, (optional) detected `gender` + `ageGroup`, (optional) `weather`, and (optional) `wardrobeOnly: true` to constrain to the user's saved wardrobe items. Returns the saved recommendation `id` plus `outfitItemRefs` when in wardrobe mode. | ✅ |
+| `POST` | `/api/outfit/generate` | Generate AI outfit based on skin tone, occasion, preferences, (optional) detected `gender` + `ageGroup`, (optional) `region` (one of: `pakistani`, `indian`, `bangladeshi`, `arab`, `western` — drives cultural styling for Eid / Mehndi / Walima / Diwali / Holi / Wedding occasions), (optional) `weather`, and (optional) `wardrobeOnly: true` to constrain to the user's saved wardrobe items. Returns the saved recommendation `id` plus `outfitItemRefs` when in wardrobe mode. | ✅ |
 | `POST` | `/api/outfit/:id/preview` | Kick off async image generation for the saved recommendation. Idempotent — returns current state if a job is in flight or already done. Responds `202` when a new job is started. | ✅ |
 | `GET`  | `/api/outfit/:id/preview` | Poll the image-generation status. | ✅ |
 

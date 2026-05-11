@@ -6,20 +6,41 @@ import { useRouter } from "next/navigation";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import WeatherCard from "@/components/WeatherCard";
 import { getFlowState, setFlowState } from "@/lib/flow";
-import { generateOutfit } from "@/lib/outfit";
+import { generateOutfit, Region } from "@/lib/outfit";
 import { listWardrobeItems } from "@/lib/wardrobe";
 import type { WeatherSnapshot } from "@/lib/weather";
 
-const OCCASIONS = [
+interface OccasionDef {
+  id: string;
+  label: string;
+  emoji: string;
+  cultural?: boolean;
+}
+
+const OCCASIONS: OccasionDef[] = [
   { id: "casual", label: "Casual", emoji: "🧢" },
   { id: "office", label: "Office / Work", emoji: "💼" },
   { id: "dinner", label: "Dinner Date", emoji: "🍷" },
-  { id: "wedding", label: "Wedding", emoji: "💍" },
-  { id: "mehndi", label: "Mehndi", emoji: "🌿" },
+  { id: "wedding", label: "Wedding", emoji: "💍", cultural: true },
+  { id: "mehndi", label: "Mehndi", emoji: "🌿", cultural: true },
+  { id: "eid", label: "Eid", emoji: "🌙", cultural: true },
+  { id: "walima", label: "Walima", emoji: "💒", cultural: true },
+  { id: "diwali", label: "Diwali", emoji: "🪔", cultural: true },
+  { id: "holi", label: "Holi", emoji: "🎨", cultural: true },
   { id: "party", label: "Party", emoji: "🎉" },
   { id: "gym", label: "Gym", emoji: "🏋️" },
   { id: "beach", label: "Beach", emoji: "🏖️" },
   { id: "formal", label: "Formal Event", emoji: "🎩" }
+];
+
+const CULTURAL_IDS = new Set(OCCASIONS.filter((o) => o.cultural).map((o) => o.id));
+
+const REGIONS: { id: Region; label: string; emoji: string }[] = [
+  { id: "pakistani", label: "Pakistani", emoji: "🇵🇰" },
+  { id: "indian", label: "Indian", emoji: "🇮🇳" },
+  { id: "bangladeshi", label: "Bangladeshi", emoji: "🇧🇩" },
+  { id: "arab", label: "Arab", emoji: "🕌" },
+  { id: "western", label: "Western", emoji: "🌍" }
 ];
 
 const STYLES = ["minimal", "classic", "bold", "streetwear", "boho"];
@@ -28,6 +49,7 @@ export default function OccasionPage() {
   const router = useRouter();
   const [hasUpload, setHasUpload] = useState<boolean | null>(null);
   const [occasion, setOccasion] = useState<string | null>(null);
+  const [region, setRegion] = useState<Region | null>(null);
   const [style, setStyle] = useState<string>("");
   const [colorsLike, setColorsLike] = useState("");
   const [colorsAvoid, setColorsAvoid] = useState("");
@@ -46,6 +68,7 @@ export default function OccasionPage() {
       setHasUpload(true);
     }
     if (state.weather) setWeather(state.weather);
+    if (state.region) setRegion(state.region);
     listWardrobeItems()
       .then((res) => setWardrobeCount(res.items.length))
       .catch(() => setWardrobeCount(0));
@@ -81,7 +104,8 @@ export default function OccasionPage() {
       notes: notes || undefined
     };
 
-    setFlowState({ occasion, preferences });
+    const effectiveRegion = CULTURAL_IDS.has(occasion) ? region ?? undefined : undefined;
+    setFlowState({ occasion, preferences, region: effectiveRegion });
 
     try {
       const result = await generateOutfit({
@@ -91,6 +115,7 @@ export default function OccasionPage() {
         imagePath: state.upload?.path,
         gender: state.appearance?.gender,
         ageGroup: state.appearance?.ageGroup,
+        region: effectiveRegion,
         weather: state.weather ?? undefined,
         wardrobeOnly: wardrobeOnly || undefined,
         preferences
@@ -156,7 +181,7 @@ export default function OccasionPage() {
                   <button
                     key={o.id}
                     onClick={() => setOccasion(o.id)}
-                    className={`group flex flex-col items-start gap-2 rounded-2xl border-2 p-4 text-left transition-all duration-200 ${
+                    className={`group relative flex flex-col items-start gap-2 rounded-2xl border-2 p-4 text-left transition-all duration-200 ${
                       selected
                         ? "border-brand-700 bg-brand-gradient-soft shadow-brand -translate-y-0.5"
                         : "border-transparent bg-white shadow-soft hover:-translate-y-0.5 hover:border-brand-300 hover:shadow-brand"
@@ -168,11 +193,50 @@ export default function OccasionPage() {
                     <span className="font-semibold text-neutral-800">
                       {o.label}
                     </span>
+                    {o.cultural && (
+                      <span className="absolute right-3 top-3 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-amber-800">
+                        Cultural
+                      </span>
+                    )}
                   </button>
                 );
               })}
             </div>
           </section>
+
+          {occasion && CULTURAL_IDS.has(occasion) && (
+            <section>
+              <h2 className="mb-1 text-lg font-semibold text-neutral-800">
+                Pick a region{" "}
+                <span className="text-sm font-normal text-neutral-500">
+                  (improves cultural styling)
+                </span>
+              </h2>
+              <p className="mb-3 text-sm text-neutral-600">
+                We&apos;ll use this to pick the right garments — e.g. sherwani vs.
+                tuxedo, lehenga vs. gown, khussa vs. loafers.
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {REGIONS.map((r) => {
+                  const selected = region === r.id;
+                  return (
+                    <button
+                      key={r.id}
+                      onClick={() => setRegion(selected ? null : r.id)}
+                      className={`flex items-center gap-2 rounded-full border-2 px-3 py-1.5 text-sm font-medium transition ${
+                        selected
+                          ? "border-brand-600 bg-brand-50 text-brand-800"
+                          : "border-neutral-200 bg-white text-neutral-700 hover:border-brand-300 hover:bg-brand-50/40"
+                      }`}
+                    >
+                      <span aria-hidden>{r.emoji}</span>
+                      {r.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </section>
+          )}
 
           <WeatherCard value={weather} onChange={handleWeatherChange} />
 

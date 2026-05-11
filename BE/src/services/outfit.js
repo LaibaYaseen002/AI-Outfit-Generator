@@ -52,7 +52,29 @@ Weather guidance (apply ONLY when weather is provided):
 - fog               → layer for damp cool air; muted colors read better.
 - high wind (≥ 30 km/h) → avoid loose flowing pieces; favor structured silhouettes.
 
-When weather and occasion clash (e.g., wedding in 5°C rain), keep occasion-appropriate styling but adapt: add a tailored coat, switch suede for leather, swap open footwear for closed, etc. Always reflect the adaptation in the explanation.`;
+When weather and occasion clash (e.g., wedding in 5°C rain), keep occasion-appropriate styling but adapt: add a tailored coat, switch suede for leather, swap open footwear for closed, etc. Always reflect the adaptation in the explanation.
+
+Cultural & regional guidance (apply ONLY when the occasion is one of: eid, mehndi, walima, diwali, holi, wedding — and especially when "Region" is provided):
+
+Region-specific vocabulary:
+- pakistani / indian / bangladeshi → South Asian wardrobe. Use these terms naturally:
+    Garments: shalwar kameez, kurta, kurta-pajama, kurti, sherwani, achkan, anarkali suit, lehenga choli, sharara, gharara, saree, salwar.
+    Footwear: khussa, peshawari chappal, kolhapuri, juttis, embroidered mojari.
+    Accessories: dupatta, stole, jhumka earrings, maang tikka, kalgi, gold/silver bangles, kundan set, gota patti detailing.
+- arab → thobe / dishdasha / jalabiya / bisht for men; abaya / kaftan / jalabiya for women. Modest cuts, clean lines, light embroidery, neutral and pastel palettes.
+- western → standard western styling, no culture-specific garments.
+
+Occasion-specific styling:
+- eid → Eid-ul-Fitr leans pastel & clean (cream, lilac, mint, sky blue, soft pink); Eid-ul-Adha leans deeper warm tones (maroon, olive, gold). Always fresh, modestly cut, light embroidery, closed dressy footwear.
+- mehndi → Pre-wedding bright daytime/evening event. Yellows, greens, oranges, magenta. Floral motifs, mirror-work, gota patti. Comfortable for dancing — no restrictive heavy gowns.
+- walima → Formal post-wedding reception. Gold and silver tones, heavy embroidery, jewelled accessories. Sherwani, formal saree, heavy gown, or anarkali. Closed formal footwear.
+- diwali → Festive evening. Rich jewel tones — deep red, royal blue, emerald, mustard, gold. Saree, lehenga, sherwani, or formal kurta-pajama. Gold jewellery encouraged.
+- holi → Color-festival, daytime, outdoor. Light cotton kurta or casual clothes the wearer doesn't mind staining. White or off-white is traditional. Avoid heavy embroidery or expensive fabrics.
+- wedding (when Region is South Asian) → upgrade to the most formal culturally appropriate look (sherwani / heavy lehenga / formal saree). When Region is western or unspecified, default to western formal.
+
+If Region is not provided but the occasion is cultural, default to neutral South Asian styling for mehndi/walima/eid; for diwali/holi default to Indian; skip culture-specific cues only when the occasion does not strictly require them.
+
+When applying cultural styling, the explanation MUST briefly name the cultural reasoning (e.g., "A pastel shalwar kameez fits Eid-ul-Fitr's clean, fresh palette…").`;
 
 function describeWeather(weather) {
   if (!weather) return null;
@@ -123,6 +145,7 @@ function buildUserMessage({
   skinTone,
   skinHex,
   occasion,
+  region,
   weather,
   preferences,
   wardrobe
@@ -134,6 +157,7 @@ function buildUserMessage({
     `Skin tone: ${skinTone}${skinHex ? ` (approx ${skinHex})` : ""}`
   );
   lines.push(`Occasion: ${occasion}`);
+  if (region) lines.push(`Region: ${region}`);
 
   const weatherBlock = describeWeather(weather);
   if (weatherBlock) {
@@ -180,6 +204,7 @@ export async function generateOutfit(input) {
     skinTone,
     skinHex,
     occasion,
+    region,
     weather,
     preferences,
     wardrobe
@@ -199,6 +224,7 @@ export async function generateOutfit(input) {
           skinTone,
           skinHex,
           occasion,
+          region,
           weather,
           preferences,
           wardrobe
@@ -243,6 +269,7 @@ export async function generateOutfit(input) {
     gender: gender ?? null,
     ageGroup: ageGroup ?? null,
     weather: weather ?? null,
+    region: region ?? null,
     skinTone,
     occasion,
     model: OPENAI_MODEL
