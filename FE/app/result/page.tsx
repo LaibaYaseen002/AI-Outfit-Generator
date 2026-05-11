@@ -17,6 +17,14 @@ const TONE_LABELS: Record<string, string> = {
   dark: "Deep"
 };
 
+const REGION_LABELS: Record<string, { label: string; emoji: string }> = {
+  pakistani: { label: "Pakistani", emoji: "🇵🇰" },
+  indian: { label: "Indian", emoji: "🇮🇳" },
+  bangladeshi: { label: "Bangladeshi", emoji: "🇧🇩" },
+  arab: { label: "Arab", emoji: "🕌" },
+  western: { label: "Western", emoji: "🌍" }
+};
+
 export default function ResultPage() {
   const [result, setResult] = useState<OutfitResponse | null>(null);
   const [skinHex, setSkinHex] = useState<string | null>(null);
@@ -140,6 +148,14 @@ export default function ResultPage() {
                   {(result.gender || result.ageGroup) && (
                     <p className="mt-0.5 text-xs capitalize text-neutral-500">
                       {[result.ageGroup, result.gender].filter(Boolean).join(" · ")}
+                    </p>
+                  )}
+                  {result.region && REGION_LABELS[result.region] && (
+                    <p className="mt-0.5 inline-flex items-center gap-1 text-xs text-neutral-500">
+                      <span aria-hidden>
+                        {REGION_LABELS[result.region].emoji}
+                      </span>
+                      {REGION_LABELS[result.region].label} styling
                     </p>
                   )}
                   {result.weather && (
