@@ -200,6 +200,10 @@ SUPABASE_BUCKET=user-photos
 # OpenAI
 OPENAI_API_KEY=your-openai-api-key
 OPENAI_MODEL=gpt-4o-mini
+# Optional. Only set when OPENAI_MODEL is text-only (e.g. Groq's
+# llama-3.3-70b-versatile). Used for appearance detection (gender + age) from
+# the uploaded photo. Defaults to OPENAI_MODEL.
+OPENAI_VISION_MODEL=
 
 # Image generation (outfit preview)
 # Provider: 'huggingface' (free, default) or 'openai' (paid).
@@ -473,7 +477,7 @@ This project depends on the following external services. You'll need an account 
 | Service | Purpose | Keys / Variables Needed | Where to Get It |
 |---------|---------|------------------------|----------------|
 | **Supabase** | Database, Auth, Storage | `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` | [supabase.com](https://supabase.com) → Project Settings → API |
-| **OpenAI** | LLM for outfit generation; optional image provider | `OPENAI_API_KEY`, `OPENAI_MODEL`, optional `IMAGE_API_KEY`, `IMAGE_BASE_URL`, `IMAGE_MODEL` | [platform.openai.com](https://platform.openai.com) → API keys |
+| **OpenAI** | LLM for outfit generation; optional image provider | `OPENAI_API_KEY`, `OPENAI_MODEL`, optional `OPENAI_VISION_MODEL`, `IMAGE_API_KEY`, `IMAGE_BASE_URL`, `IMAGE_MODEL` | [platform.openai.com](https://platform.openai.com) → API keys |
 | **Hugging Face** | **Default** image provider for outfit preview (free) | `IMAGE_PROVIDER=huggingface`, `HF_API_KEY`, `HF_IMAGE_MODEL` | [huggingface.co/settings/tokens](https://huggingface.co/settings/tokens) — create a Read token |
 | **Cloudinary** *(optional)* | Alternative image hosting | `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET` | [cloudinary.com](https://cloudinary.com) → Dashboard |
 | **face-api.js** *(library)* | Face detection in the browser/server | No key — model files only | [github.com/justadudewhohacks/face-api.js](https://github.com/justadudewhohacks/face-api.js) |

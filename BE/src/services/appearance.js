@@ -1,5 +1,5 @@
 import sharp from "sharp";
-import { openai, OPENAI_MODEL } from "./openai.js";
+import { openai, OPENAI_MODEL, OPENAI_VISION_MODEL } from "./openai.js";
 
 const ALLOWED_GENDERS = ["male", "female"];
 const ALLOWED_AGE_GROUPS = ["child", "teenager", "adult"];
@@ -68,7 +68,7 @@ export async function analyzeAppearance(imageBuffer) {
   const dataUrl = buildImageDataUrl(normalized, "image/jpeg");
 
   const completion = await openai.chat.completions.create({
-    model: OPENAI_MODEL,
+    model: OPENAI_VISION_MODEL,
     response_format: { type: "json_object" },
     temperature: 0,
     messages: [
@@ -124,6 +124,6 @@ export async function analyzeAppearance(imageBuffer) {
     confidence: Number(confidence.toFixed(2)),
     reason,
     status,
-    model: OPENAI_MODEL
+    model: OPENAI_VISION_MODEL
   };
 }
