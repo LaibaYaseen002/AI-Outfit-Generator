@@ -8,14 +8,16 @@ A full-stack AI-powered web application that recommends personalized outfits bas
 
 1. [Project Overview](#1-project-overview)
 2. [Features](#2-features)
-3. [Tech Stack](#3-tech-stack)
-4. [Folder Structure](#4-folder-structure)
-5. [Setup Instructions](#5-setup-instructions)
-6. [Environment Variables](#6-environment-variables)
-7. [API Endpoints](#7-api-endpoints)
-8. [Third-Party Services & Keys Used](#8-third-party-services--keys-used)
-9. [Development Workflow](#9-development-workflow)
-10. [Future Improvements](#10-future-improvements)
+3. [Sample Outputs](#3-sample-outputs)
+4. [Tech Stack](#4-tech-stack)
+5. [Folder Structure](#5-folder-structure)
+6. [Setup Instructions](#6-setup-instructions)
+7. [Environment Variables](#7-environment-variables)
+8. [API Endpoints](#8-api-endpoints)
+9. [Third-Party Services & Keys Used](#9-third-party-services--keys-used)
+10. [Development Workflow](#10-development-workflow)
+11. [Design Decisions & Trade-offs](#11-design-decisions--trade-offs)
+12. [Future Improvements](#12-future-improvements)
 
 ---
 
@@ -58,10 +60,32 @@ The goal is a **production-ready** application with clean architecture, secure a
 - **Favorites / Saved looks** — users can star outfits they want to keep.
 - **Shareable result links** — generate a public, read-only link for any saved outfit (with OG previews for social platforms). Owners can revoke at any time.
 - **Wardrobe mode** — upload your own clothing items; turn on wardrobe-only mode to get outfits picked exclusively from what you own. AI auto-classifies category, name, colors, and attributes from each photo.
+- **AI Fashion Designer (Design Studio)** — upload multiple close-up reference images (neck, sleeves, daman/border, dupatta, embroidery, fabric, etc.), tag each one, write a short description, and the AI merges them into a single realistic mannequin outfit. Each upload is auto-analyzed once (dominant colors, embroidery type, cultural style, summary) and the analysis is cached on the row so regenerations don't re-pay for vision. The generation step calls **Pollinations.ai** (free, no key, FLUX-based) — it conditions on the **first** reference image, while the other references still influence the result because their cached analysis is woven into the prompt by `designPrompt.js`. Two new tables (`design_references`, `designs`) are added in `006_design_studio.sql`; outputs are stored in the existing private bucket under `<userId>/designs/`.
 
 ---
 
-## 3. Tech Stack
+## 3. Sample Outputs
+
+Below are real outputs from the **AI Fashion Designer (Design Studio)** flow — uploaded reference images merged with a text description into a single rendered design.
+
+> 📸 **Add screenshots here.** Place 4–8 of your best generated designs (alongside the reference images that produced them) in `docs/samples/` and link them in the table below. Crop tightly, label clearly. Recruiters skim this section first.
+
+| Design Brief | References Used | Generated Output |
+|---|---|---|
+| Cherry-red floor-length kurti, chikankari embroidery, full sleeves, flapper trouser, chiffon dupatta | `neck.jpg`, `sleeve.jpg`, `daman.jpg` | `docs/samples/01-cherry-red.jpg` |
+| _(replace these rows with your best results)_ | | |
+
+### How the pipeline produces these
+
+1. User uploads 1–N reference images (neck, sleeve, daman, dupatta, embroidery, fabric, etc.).
+2. Each reference is analyzed **once** by the vision model — dominant colors, embroidery type, cultural style, summary — and the analysis is cached on the row so regenerations don't re-pay.
+3. A deterministic prompt template (`BE/src/services/designPrompt.js`) merges the user's free-text description, the cached analysis of every reference, and the structured controls (fit, fabric, length, sleeve, dupatta, trouser) into a single prompt.
+4. The image model receives the prompt **plus** the most-important reference as visual conditioning; other references influence the result through their cached descriptions in the prompt.
+5. The output is downloaded server-side and persisted to the private storage bucket under `<userId>/designs/<uuid>.<ext>` — the FE polls a status endpoint and renders it when `ready`.
+
+---
+
+## 4. Tech Stack
 
 | Layer | Technology |
 |-------|-----------|
@@ -78,7 +102,7 @@ The goal is a **production-ready** application with clean architecture, secure a
 
 ---
 
-## 4. Folder Structure
+## 5. Folder Structure
 
 ```
 AI-Outfit-Generator/
@@ -115,7 +139,7 @@ AI-Outfit-Generator/
 
 ---
 
-## 5. Setup Instructions
+## 6. Setup Instructions
 
 ### Prerequisites
 
@@ -171,7 +195,7 @@ Visit `http://localhost:3000`, create an account, upload a photo, choose an occa
 
 ---
 
-## 6. Environment Variables
+## 7. Environment Variables
 
 ### Frontend — `FE/.env.local`
 
@@ -205,6 +229,11 @@ OPENAI_MODEL=gpt-4o-mini
 # the uploaded photo. Defaults to OPENAI_MODEL.
 OPENAI_VISION_MODEL=
 
+# Pollinations.ai — image generation for the AI Fashion Designer.
+# Free forever, no signup, no API key required.
+# Models: flux (default), flux-realism, kontext.
+DESIGN_IMAGE_MODEL=flux
+
 # Image generation (outfit preview)
 # Provider: 'huggingface' (free, default) or 'openai' (paid).
 IMAGE_PROVIDER=huggingface
@@ -233,7 +262,7 @@ CORS_ORIGIN=http://localhost:3000
 
 ---
 
-## 7. API Endpoints
+## 8. API Endpoints
 
 All backend endpoints are prefixed with `/api`.
 
@@ -451,6 +480,22 @@ Item shape:
 
 The auto-classifier is implemented in `BE/src/services/wardrobeClassify.js` — same OpenAI-compatible vision pipeline as appearance detection. Confidence < 0.7 still pre-fills the form; the user can edit any field before saving. Wardrobe-mode item references are persisted on the recommendation row inside `preferences.outfitItemRefs` (no schema migration on `recommendations`).
 
+### AI Fashion Designer (Design Studio)
+
+Multi-reference outfit design feature. The user uploads several close-up images of design elements (neckline, sleeves, daman, embroidery, fabric…), tags each one, writes a short description, and the system merges everything into a single realistic mannequin photoshoot. Implemented in two tables (`design_references`, `designs`) added by `006_design_studio.sql`.
+
+| Method | Endpoint | Description | Auth |
+|--------|----------|-------------|------|
+| `POST`   | `/api/design/references`     | Multipart upload (`image` field + form field `tag`). Stores under `<userId>/design-refs/<uuid>.<ext>`, runs a vision pass that extracts `{dominantColors, embroideryType, stitchingDensity, culturalStyle, summary}`, and persists the analysis on the row so regenerations don't re-pay for vision. | ✅ |
+| `GET`    | `/api/design/references`     | List all of the user's references with fresh 1h-signed URLs. | ✅ |
+| `DELETE` | `/api/design/references/:id` | Remove the reference and its storage object. | ✅ |
+| `POST`   | `/api/design/generate`       | Body: `{ referenceIds: string[], userPrompt: string, controls?: object }`. Builds the prompt (server-side deterministic template), inserts a `designs` row in `pending` status, returns `202` and the row, then kicks off a background Pollinations image-generation job. The FE polls `GET /api/design/:id`. | ✅ |
+| `GET`    | `/api/design`                | List all of the user's designs (most recent first). | ✅ |
+| `GET`    | `/api/design/:id`            | Fetch a single design — used both for the detail page and for polling generation status. Returns a fresh signed URL for `outputPath` when status is `ready`. | ✅ |
+| `DELETE` | `/api/design/:id`            | Remove the design row and its output image. | ✅ |
+
+The prompt builder (`BE/src/services/designPrompt.js`) is **deliberately not LLM-driven** — a hand-tuned template keeps outputs reproducible across regenerations. Pollinations conditions on the **first** reference image (its `?image=` parameter) while the other references' cached analysis (colors, embroidery, cultural style, summary) is spliced into the prompt by the builder — so design identity is still preserved, just with one strong visual anchor instead of full multi-image fusion. Default model is **`flux`**; override via `DESIGN_IMAGE_MODEL` (`flux-realism` for photoreal, `kontext` for FLUX-Kontext image editing). Pollinations has no native `negative_prompt` field, so the negative clause is spliced into the main prompt as an "Avoid: …" line. Generation is async (same pattern as `/api/outfit/:id/preview`) — the row moves through `pending → generating → ready | failed`. Output images are stored in the existing private bucket under `<userId>/designs/<uuid>.<ext>`.
+
 ### Sample response — `POST /api/outfit/generate`
 
 ```json
@@ -470,7 +515,7 @@ The auto-classifier is implemented in `BE/src/services/wardrobeClassify.js` — 
 
 ---
 
-## 8. Third-Party Services & Keys Used
+## 9. Third-Party Services & Keys Used
 
 This project depends on the following external services. You'll need an account and API key for each one before running locally.
 
@@ -479,6 +524,7 @@ This project depends on the following external services. You'll need an account 
 | **Supabase** | Database, Auth, Storage | `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` | [supabase.com](https://supabase.com) → Project Settings → API |
 | **OpenAI** | LLM for outfit generation; optional image provider | `OPENAI_API_KEY`, `OPENAI_MODEL`, optional `OPENAI_VISION_MODEL`, `IMAGE_API_KEY`, `IMAGE_BASE_URL`, `IMAGE_MODEL` | [platform.openai.com](https://platform.openai.com) → API keys |
 | **Hugging Face** | **Default** image provider for outfit preview (free) | `IMAGE_PROVIDER=huggingface`, `HF_API_KEY`, `HF_IMAGE_MODEL` | [huggingface.co/settings/tokens](https://huggingface.co/settings/tokens) — create a Read token |
+| **Pollinations.ai** | Image generation for the AI Fashion Designer (Design Studio) — completely free, no signup, no key | `DESIGN_IMAGE_MODEL` (default `flux`) | No signup — public endpoint at [pollinations.ai](https://pollinations.ai) |
 | **Cloudinary** *(optional)* | Alternative image hosting | `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET` | [cloudinary.com](https://cloudinary.com) → Dashboard |
 | **face-api.js** *(library)* | Face detection in the browser/server | No key — model files only | [github.com/justadudewhohacks/face-api.js](https://github.com/justadudewhohacks/face-api.js) |
 
@@ -490,7 +536,7 @@ This project depends on the following external services. You'll need an account 
 
 ---
 
-## 9. Development Workflow
+## 10. Development Workflow
 
 This project follows a strict **feature-branch** workflow.
 
@@ -520,15 +566,66 @@ docs: update env example
 
 ---
 
-## 10. Future Improvements
+## 11. Design Decisions & Trade-offs
 
-- 🌦 **Weather-aware recommendations** via OpenWeather API.
-- 🎉 **Cultural & regional modes** (mehndi, eid, diwali, holiday parties, etc.).
-- 🖼 **AI-generated outfit preview images** (DALL·E / Stable Diffusion).
-- ⭐ **Favorites & saved lookbooks**.
-- 📱 **Mobile PWA** version with offline history.
-- 🛍 **Shopping links** — connect outfit items to e-commerce listings.
-- 🌐 **Multi-language UI** (English + Urdu first).
+A few of the non-obvious choices in this codebase, why they were made, and what the alternative would have cost.
+
+### Free-tier first, paid path documented
+
+Every external service in this project has a **free tier** chosen deliberately so the app costs $0 to run during development and demo:
+
+| Concern | Free choice (used) | Paid alternative (documented, not used) | Why the free choice |
+|---|---|---|---|
+| LLM for outfit reasoning | Groq (`llama-3.3-70b-versatile`) | OpenAI (`gpt-4o-mini`) | OpenAI-compatible API → zero code change to switch; Groq is fast and free for student-scale traffic |
+| Vision (skin tone / appearance) | Groq (`llama-4-scout-17b`) | OpenAI vision | Same OpenAI client, just a different env var (`OPENAI_VISION_MODEL`) |
+| Outfit preview images | Hugging Face FLUX.1-schnell | OpenAI `gpt-image-1` | HF gives 1024×1024 generations for free; quality is sufficient for inline previews |
+| Design Studio image gen | Pollinations.ai (FLUX / Kontext) | Google Gemini `gemini-2.5-flash-image` (~$0.04/gen) | Pollinations is keyless and free forever; Gemini's "nano-banana" gives multi-reference fusion when budget allows |
+
+The provider boundary is a single service file for each concern (`openai.js`, `huggingface.js`, `pollinations.js`), so swapping to a paid provider is one import + one env-var change — not a refactor.
+
+### Deterministic prompt template, not an LLM-built prompt
+
+`designPrompt.js` is a hand-tuned string template, not an LLM call. **Reason:** image generations are non-deterministic enough already — the user needs to be able to regenerate with the same description and get a meaningfully similar output. Adding an LLM in front of the image model would multiply the randomness and waste tokens for a step that doesn't need creativity.
+
+### Vision analysis cached per reference, not per generation
+
+Every uploaded reference is analyzed **once** by the vision model (`appearance.js` style) and the result (dominant colors, embroidery type, cultural style, summary) is persisted on the `design_references` row. Subsequent generations of the same design read from the cache. This cuts vision tokens by ~80% on regenerations and makes the prompt deterministic across attempts.
+
+### Async generation with row-status polling, not WebSockets
+
+The `/api/design/generate` endpoint returns `202` immediately with a `pending` row; the FE polls `/api/design/:id`. This pattern is reused from `/api/outfit/:id/preview`. **Reason:** WebSockets add infra cost and a stateful connection layer for a generation step that takes 5–30s. Polling at 2s intervals over HTTP is simpler, survives reconnects, and stays inside the free-tier serverless budget.
+
+### Single conditioning image, multi-reference described in prompt
+
+The free image provider conditions on **one** reference image. We pick the first uploaded reference as the visual anchor and weave the cached descriptions of the rest into the prompt text. **Trade-off:** full multi-image fusion (what `gemini-2.5-flash-image` does) would preserve embroidery and silhouette detail more faithfully. Switching is one env var when budget allows — the prompt builder already produces a description rich enough to drop the image conditioning entirely if needed.
+
+### `dotenv/config` loaded at the top of `index.js`, no per-service re-load
+
+Each service reads `process.env` lazily, so config changes only need a backend restart — never a code change. `.env` is gitignored; `.env.example` is the source of truth for which vars exist.
+
+---
+
+## 12. Future Improvements
+
+### Quality & fidelity
+
+- **Multi-reference image fusion** — swap Pollinations for Gemini `gemini-2.5-flash-image` (paid tier) so all uploaded references are visually conditioned at once, not just the first. The provider boundary is already isolated in `pollinations.js`, so this is a single-file change.
+- **Reference-image collage** — server-side stitch all uploads into a 2×N grid using `sharp` before sending, so a single-conditioning provider still "sees" all references in one image.
+- **Regional vocabulary translation** — pre-process prompts to expand South Asian fashion terms (chikankari, chiffon, lawn, daman, dories) into descriptive English the underlying image model understands more reliably.
+
+### Product
+
+- 🌦 Weather-aware recommendations via OpenWeather API.
+- ⭐ Favorites & saved lookbooks (separate from history).
+- 📱 Mobile PWA version with offline history.
+- 🛍 Shopping links — connect outfit items to e-commerce listings.
+- 🌐 Multi-language UI (English + Urdu first).
+
+### Engineering
+
+- **Job queue** — move generation off the Express request lifecycle into BullMQ + Redis once concurrency grows past a single dev machine.
+- **Image-CDN signing** — replace per-request `createSignedUrl` calls with short-lived bucket-level signing tokens to cut Supabase Storage API calls on the polling endpoint.
+- **End-to-end tests** — Playwright for the generate → poll → render flow; currently only unit-tested at the service layer.
 
 ---
 

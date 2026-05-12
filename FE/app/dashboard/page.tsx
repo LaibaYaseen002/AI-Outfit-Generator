@@ -52,6 +52,9 @@ export default function DashboardPage() {
               Try the Outfit Generator
               <span aria-hidden>→</span>
             </Link>
+            <Link href="/design" className="btn btn-lg btn-secondary sm:col-span-2">
+              AI Fashion Designer ✨
+            </Link>
             <Link href="/history" className="btn btn-md btn-secondary">
               View History
             </Link>
