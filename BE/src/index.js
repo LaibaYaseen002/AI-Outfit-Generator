@@ -13,6 +13,8 @@ import outfitRouter from "./routes/outfit.js";
 import historyRouter from "./routes/history.js";
 import shareRouter from "./routes/share.js";
 import wardrobeRouter from "./routes/wardrobe.js";
+import designReferenceRouter from "./routes/designReference.js";
+import designRouter from "./routes/design.js";
 import { errorHandler } from "./middlewares/errorHandler.js";
 import { notFound } from "./middlewares/notFound.js";
 
@@ -36,6 +38,8 @@ app.use("/api/outfit", outfitRouter);
 app.use("/api/history", historyRouter);
 app.use("/api/share", shareRouter);
 app.use("/api/wardrobe", wardrobeRouter);
+app.use("/api/design/references", designReferenceRouter);
+app.use("/api/design", designRouter);
 
 // 404 + error handler (must be last)
 app.use(notFound);
